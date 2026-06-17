@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error || !data.url) {
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error?.message ?? 'Could not start login.')}`);
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error?.message ?? 'Could not start login.')}`, { status: 303 });
   }
-  return NextResponse.redirect(data.url);
+  return NextResponse.redirect(data.url, { status: 303 });
 }
