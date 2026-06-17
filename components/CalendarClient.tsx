@@ -30,8 +30,8 @@ export default function CalendarClient() {
     if (wf) params.set('worker_id', wf);
     const r = await fetch(`/api/bookings?${params}`);
     if (!r.ok) return;
-    const bookings = await r.json();
-    setEvents(bookings.map((b: any) => {
+    const { data: bookings } = await r.json();
+    setEvents((bookings ?? []).map((b: any) => {
       const c = STATUS_COLORS[b.status] ?? STATUS_COLORS.SCHEDULED;
       return {
         id: b.id,
