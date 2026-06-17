@@ -10,6 +10,22 @@ export default function InvoiceDetail({ invoice: initial }: { invoice: any }) {
   const [lineItems, setLineItems] = useState<any[]>(initial.line_items ?? []);
   const [notes, setNotes] = useState(initial.notes ?? '');
   const [saving, setSaving] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
+
+  async function openStripeCheckout() {
+    setStripeLoading(true);
+    try {
+      const r = await fetch('/api/stripe/checkout-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoice.id }),
+      });
+      const d = await r.json();
+      if (d.url) window.location.href = d.url;
+    } finally {
+      setStripeLoading(false);
+    }
+  }
 
   async function reload() {
     const r = await fetch(`/api/invoices/${invoice.id}`);
@@ -40,6 +56,12 @@ export default function InvoiceDetail({ invoice: initial }: { invoice: any }) {
           {(invoice.status === 'draft' || invoice.status === 'sent') && (
             <button className="btn small danger" onClick={() => patch({ status: 'void' })}>Void</button>
           )}
+          {(invoice.status === 'draft' || invoice.status === 'sent') && (
+            <button className="btn small" style={{ background: '#635bff' }} onClick={openStripeCheckout} disabled={stripeLoading}>
+              {stripeLoading ? 'Loading…' : 'Get payment link'}
+            </button>
+          )}
+          <a href={`/api/invoices/${invoice.id}/pdf`} className="btn ghost small" download>Download PDF</a>
         </div>
       </div>
 

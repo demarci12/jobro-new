@@ -7,18 +7,14 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/calendar';
   const oauthError = searchParams.get('error_description') ?? searchParams.get('error');
 
-  console.log('[auth/callback] origin:', origin, 'code:', !!code, 'error:', oauthError);
-
   if (oauthError) return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(oauthError)}`);
   if (!code) return NextResponse.redirect(`${origin}/login?error=Missing authorization code.`);
 
   try {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    console.log('[auth/callback] exchangeCodeForSession error:', error?.message ?? 'none');
     if (error) return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
-  } catch (e) {
-    console.error('[auth/callback] threw:', e);
+  } catch {
     return NextResponse.redirect(`${origin}/login?error=Auth callback failed.`);
   }
 
