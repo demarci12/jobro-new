@@ -9,7 +9,7 @@ async function requireAuth() { const s = await createClient(); const { data: { u
 export async function GET(request: NextRequest) {
   if (!await requireAuth()) return json({ error: 'Unauthorized' }, 401);
   const { searchParams } = request.nextUrl;
-  const q = searchParams.get('q') ?? '';
+  const q = (searchParams.get('q') ?? '').slice(0, 100);
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
   const limit = Math.min(100, parseInt(searchParams.get('limit') ?? '20'));
   const offset = (page - 1) * limit;

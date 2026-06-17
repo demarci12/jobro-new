@@ -2,14 +2,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { updateCalendarEvent, cancelCalendarEvent } from '@/lib/googleCalendar';
 import { hasConflict, type TimeRange } from '@/lib/availability';
+import { json } from '@/lib/schemas';
 import { z } from 'zod';
-import { type NextRequest, NextResponse } from 'next/server';
-
-const db = () => createAdminClient();
-const json = (data: unknown, status = 200) => NextResponse.json(data, { status });
+import { type NextRequest } from 'next/server';
 
 const PatchSchema = z.object({
-  status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'FINISHED', 'CANCELLED']).optional(),
+  status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'FINISHED', 'INVOICED', 'CANCELLED']).optional(),
   start_time: z.string().datetime().optional(),
   end_time: z.string().datetime().optional(),
   address: z.string().optional(),
@@ -24,8 +22,8 @@ const PatchSchema = z.object({
 const TRANSITIONS: Record<string, string[]> = {
   SCHEDULED: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['FINISHED', 'CANCELLED'],
-  FINISHED: ['INVOICED'],
-  INVOICED: [],
+  FINISHED: ['INVOICED', 'CANCELLED'],
+  INVOICED: ['CANCELLED'],
   CANCELLED: [],
 };
 
@@ -38,7 +36,7 @@ async function requireAuth() {
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireAuth()) return json({ error: 'Unauthorized' }, 401);
   const { id } = await params;
-  const { data, error } = await db()
+  const { data, error } = await createAdminClient()
     .from('bookings')
     .select('*, contacts(name,email,phone), workers(name,email,google_calendar_id), service_types(name), quotes(*), invoices(*)')
     .eq('id', id)
@@ -55,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = PatchSchema.safeParse(body);
   if (!parsed.success) return json({ error: parsed.error.issues.map(i => i.message).join(', ') }, 400);
 
-  const supabase = db();
+  const supabase = createAdminClient();
   const { data: existing, error: fe } = await supabase
     .from('bookings')
     .select('*, workers(name,email,google_calendar_id), contacts(name,email)')
@@ -68,6 +66,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!allowed.includes(parsed.data.status)) {
       return json({ error: `Cannot transition from ${existing.status} to ${parsed.data.status}` }, 422);
     }
+  }
+
+  // Guard: don't allow editing paid/invoiced bookings' time slots
+  if (existing.status === 'INVOICED' && (parsed.data.start_time || parsed.data.end_time)) {
+    return json({ error: 'Cannot reschedule an invoiced booking' }, 422);
   }
 
   const patch = parsed.data;
@@ -86,7 +89,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .neq('status', 'CANCELLED')
       .gte('start_time', dayStart.toISOString())
       .lte('end_time', dayEnd.toISOString());
-    const busy: TimeRange[] = (sameDay ?? []).map((c: any) => ({ start: new Date(c.start_time), end: new Date(c.end_time) }));
+    const busy: TimeRange[] = (sameDay ?? []).map((c: { start_time: string; end_time: string }) => ({ start: new Date(c.start_time), end: new Date(c.end_time) }));
     if (hasConflict(busy, new Date(newStart), new Date(newEnd))) {
       return json({ error: 'Worker has a conflicting booking in that time slot' }, 409);
     }
@@ -110,7 +113,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         });
       }
       await supabase.from('bookings').update({ google_sync_status: 'synced' }).eq('id', id);
-    } catch {}
+    } catch (err) {
+      console.error(`GCal sync error for booking ${id}:`, err);
+      await supabase.from('bookings').update({ google_sync_status: 'failed' }).eq('id', id);
+    }
   }
 
   return json(updated);

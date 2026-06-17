@@ -1,21 +1,14 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { LineItemSchema, json } from '@/lib/schemas';
 import { z } from 'zod';
-import { type NextRequest, NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server';
 
-const db = () => createAdminClient();
-const json = (data: unknown, status = 200) => NextResponse.json(data, { status });
 async function requireAuth() { const s = await createClient(); const { data: { user } } = await s.auth.getUser(); return user; }
-
-const LineItemSchema = z.object({
-  description: z.string(),
-  qty: z.number().positive(),
-  unit_price: z.number().min(0),
-});
 
 const PatchSchema = z.object({
   status: z.enum(['draft', 'sent', 'paid', 'void']).optional(),
-  line_items: z.array(LineItemSchema).optional(),
+  line_items: z.array(LineItemSchema).max(100).optional(),
   notes: z.string().optional(),
   due_date: z.string().optional(),
 });
@@ -30,9 +23,9 @@ const INVOICE_TRANSITIONS: Record<string, string[]> = {
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireAuth()) return json({ error: 'Unauthorized' }, 401);
   const { id } = await params;
-  const { data, error } = await db()
+  const { data, error } = await createAdminClient()
     .from('invoices')
-    .select('*, bookings(start_time, address, contacts(name,email,phone), workers(name))')
+    .select('*, bookings(id, start_time, address, contacts(name,email,phone), workers(name))')
     .eq('id', id)
     .single();
   if (error || !data) return json({ error: 'Not found' }, 404);
@@ -47,9 +40,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = PatchSchema.safeParse(body);
   if (!parsed.success) return json({ error: parsed.error.issues.map(i => i.message).join(', ') }, 400);
 
-  const supabase = db();
-  const { data: existing } = await supabase.from('invoices').select('status').eq('id', id).single();
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase.from('invoices').select('status, booking_id').eq('id', id).single();
   if (!existing) return json({ error: 'Not found' }, 404);
+
+  // Guard: no edits to paid/void invoices
+  if (existing.status === 'paid' || existing.status === 'void') {
+    if (parsed.data.line_items !== undefined || parsed.data.notes !== undefined) {
+      return json({ error: 'Cannot edit a paid or void invoice' }, 422);
+    }
+  }
 
   if (parsed.data.status && parsed.data.status !== existing.status) {
     const allowed = INVOICE_TRANSITIONS[existing.status] ?? [];
@@ -69,11 +69,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (error) return json({ error: error.message }, 500);
 
   // When invoice is paid, mark booking as INVOICED
-  if (parsed.data.status === 'paid') {
-    const { data: inv } = await supabase.from('invoices').select('booking_id').eq('id', id).single();
-    if (inv?.booking_id) {
-      await supabase.from('bookings').update({ status: 'INVOICED' }).eq('id', inv.booking_id).eq('status', 'FINISHED');
-    }
+  if (parsed.data.status === 'paid' && existing.booking_id) {
+    const { error: bookingErr } = await supabase
+      .from('bookings')
+      .update({ status: 'INVOICED' })
+      .eq('id', existing.booking_id)
+      .eq('status', 'FINISHED');
+    if (bookingErr) console.warn(`Failed to mark booking ${existing.booking_id} as INVOICED:`, bookingErr.message);
   }
 
   return json(data);

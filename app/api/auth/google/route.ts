@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const state = crypto.randomUUID();
   const cookieStore = await cookies();
-  cookieStore.set('gcal_oauth_state', state, { httpOnly: true, sameSite: 'lax', maxAge: 300, path: '/' });
+  cookieStore.set('gcal_oauth_state', state, { httpOnly: true, sameSite: 'strict', maxAge: 300, path: '/' });
 
   const url = oauth2.generateAuthUrl({
     access_type: 'offline', prompt: 'consent',

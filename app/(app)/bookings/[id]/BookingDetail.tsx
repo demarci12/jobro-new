@@ -3,59 +3,83 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import JobDocumentation from '@/components/JobDocumentation';
+import type { Booking, LineItem } from '@/lib/types';
 
 type Tab = 'details' | 'quote' | 'documentation' | 'invoice';
 
-export default function BookingDetail({ booking: initial }: { booking: any }) {
+export default function BookingDetail({ booking: initial }: { booking: Booking }) {
   const router = useRouter();
   const [booking, setBooking] = useState(initial);
-  const [lineItems, setLineItems] = useState<any[]>(initial.quotes?.[0]?.line_items ?? []);
+  const [lineItems, setLineItems] = useState<LineItem[]>(initial.quotes?.[0]?.line_items ?? []);
   const [notes, setNotes] = useState(initial.quotes?.[0]?.notes ?? '');
-  const [invoice, setInvoice] = useState<any>(initial.invoices?.[0] ?? null);
+  const [invoice, setInvoice] = useState(initial.invoices?.[0] ?? null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('details');
 
   async function reload() {
-    const r = await fetch(`/api/bookings/${booking.id}`);
-    const b = await r.json();
-    setBooking(b);
-    setLineItems(b.quotes?.[0]?.line_items ?? []);
-    setNotes(b.quotes?.[0]?.notes ?? '');
-    setInvoice(b.invoices?.[0] ?? null);
+    try {
+      const r = await fetch(`/api/bookings/${booking.id}`);
+      if (!r.ok) { setError(`Failed to reload: ${r.status}`); return; }
+      const b: Booking = await r.json();
+      setBooking(b);
+      setLineItems(b.quotes?.[0]?.line_items ?? []);
+      setNotes(b.quotes?.[0]?.notes ?? '');
+      setInvoice(b.invoices?.[0] ?? null);
+    } catch {
+      setError('Network error — could not reload booking');
+    }
   }
 
   async function patchStatus(status: string) {
-    await fetch(`/api/bookings/${booking.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
-    reload();
+    setError('');
+    const r = await fetch(`/api/bookings/${booking.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Status update failed'); return; }
+    await reload();
   }
 
   async function createQuote() {
-    await fetch('/api/quotes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: booking.id, line_items: [] }) });
-    reload();
+    setError('');
+    const r = await fetch('/api/quotes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: booking.id, line_items: [] }) });
+    if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Failed to create quote'); return; }
+    await reload();
   }
 
   async function saveQuote() {
     setSaving(true);
-    const qid = booking?.quotes?.[0]?.id; if (!qid) { setSaving(false); return; }
-    const total = lineItems.reduce((s: number, li: any) => s + (li.qty||0) * (li.unit_price||0), 0);
-    await fetch(`/api/quotes/${qid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line_items: lineItems, total, notes }) });
-    setSaving(false);
+    setError('');
+    const qid = booking?.quotes?.[0]?.id;
+    if (!qid) { setSaving(false); return; }
+    try {
+      const total = lineItems.reduce((s, li) => s + (li.qty || 0) * (li.unit_price || 0), 0);
+      const r = await fetch(`/api/quotes/${qid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line_items: lineItems, total, notes }) });
+      if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Save failed'); }
+      else await reload();
+    } catch {
+      setError('Network error — save failed');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function setQuoteStatus(status: string) {
     const qid = booking?.quotes?.[0]?.id; if (!qid) return;
-    await fetch(`/api/quotes/${qid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
-    reload();
+    const r = await fetch(`/api/quotes/${qid}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Failed to update quote'); return; }
+    await reload();
   }
 
   async function createInvoice() {
+    setError('');
     const r = await fetch('/api/invoices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ booking_id: booking.id }) });
-    if (r.ok) { const inv = await r.json(); router.push(`/invoices/${inv.id}`); }
+    if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Failed to create invoice'); return; }
+    const inv = await r.json();
+    router.push(`/invoices/${inv.id}`);
   }
 
   const sc = booking.status.toLowerCase().replace('_', '-');
   const quote = booking.quotes?.[0];
-  const total = lineItems.reduce((s: number, li: any) => s + (li.qty||0) * (li.unit_price||0), 0);
+  const total = lineItems.reduce((s, li) => s + (li.qty || 0) * (li.unit_price || 0), 0);
 
   return (
     <div>
@@ -66,16 +90,22 @@ export default function BookingDetail({ booking: initial }: { booking: any }) {
         </div>
       )}
 
+      {error && (
+        <div style={{ padding: '10px 16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, marginBottom: 16, fontSize: 13, color: '#b91c1c' }}>
+          {error}
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <Link href={`/contacts/${booking.contact_id}`} className="back">← {booking.contacts?.name ?? 'Client'}</Link>
           <h1 className="page-title">{new Date(booking.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className={`badge badge-${sc}`}>{booking.status.replace('_',' ')}</span>
-          {booking.status !== 'INVOICED' && (
+          <span className={`badge badge-${sc}`}>{booking.status.replace('_', ' ')}</span>
+          {booking.status !== 'INVOICED' && booking.status !== 'CANCELLED' && (
             <select className="input" style={{ width: 'auto', fontSize: 13, padding: '6px 10px' }} value={booking.status} onChange={e => patchStatus(e.target.value)}>
-              {['SCHEDULED','IN_PROGRESS','FINISHED','CANCELLED'].map(s => <option key={s}>{s}</option>)}
+              {(['SCHEDULED', 'IN_PROGRESS', 'FINISHED', 'CANCELLED'] as const).map(s => <option key={s}>{s}</option>)}
             </select>
           )}
           {booking.status === 'FINISHED' && !invoice && (
@@ -135,7 +165,7 @@ export default function BookingDetail({ booking: initial }: { booking: any }) {
         <div className="card">
           <div className="card-header">Job details</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Row label="Time">{new Date(booking.start_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} – {new Date(booking.end_time).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</Row>
+            <Row label="Time">{new Date(booking.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} – {new Date(booking.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</Row>
             <Row label="Client"><Link href={`/contacts/${booking.contact_id}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{booking.contacts?.name ?? '—'}</Link></Row>
             <Row label="Worker">{booking.workers?.name ?? '—'}</Row>
             <Row label="Service">{booking.service_types?.name ?? '—'}</Row>
@@ -158,19 +188,19 @@ export default function BookingDetail({ booking: initial }: { booking: any }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: 'var(--canvas)' }}>
-                      {['Description','Qty','Price','Total',''].map(h => (
+                      {['Description', 'Qty', 'Price', 'Total', ''].map(h => (
                         <th key={h} style={{ padding: '7px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', borderBottom: '1px solid var(--line)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {lineItems.map((li: any, i: number) => (
+                    {lineItems.map((li, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--line)' }}>
-                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ border: '1px solid transparent', padding: '4px 6px', fontSize: 13 }} value={li.description} onChange={e => setLineItems(prev => prev.map((x,idx) => idx===i ? {...x, description: e.target.value} : x))} placeholder="Description" /></td>
-                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ border: '1px solid transparent', width: 60, textAlign: 'right', padding: '4px 6px', fontSize: 13 }} type="number" value={li.qty} onChange={e => setLineItems(prev => prev.map((x,idx) => idx===i ? {...x, qty: parseFloat(e.target.value)||1} : x))} /></td>
-                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ border: '1px solid transparent', width: 72, textAlign: 'right', padding: '4px 6px', fontSize: 13 }} type="number" value={li.unit_price} step="0.01" onChange={e => setLineItems(prev => prev.map((x,idx) => idx===i ? {...x, unit_price: parseFloat(e.target.value)||0} : x))} /></td>
-                        <td style={{ padding: '3px 8px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${((li.qty||0)*(li.unit_price||0)).toFixed(2)}</td>
-                        <td style={{ padding: '3px 4px' }}><button onClick={() => setLineItems(prev => prev.filter((_,idx)=>idx!==i))} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 16 }}>×</button></td>
+                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid transparent', padding: '4px 6px', fontSize: 13 }} value={li.description} onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} placeholder="Description" /></td>
+                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid transparent', width: 60, textAlign: 'right', padding: '4px 6px', fontSize: 13 }} type="number" value={li.qty} onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, qty: parseFloat(e.target.value) || 1 } : x))} /></td>
+                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid transparent', width: 72, textAlign: 'right', padding: '4px 6px', fontSize: 13 }} type="number" value={li.unit_price} step="0.01" onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, unit_price: parseFloat(e.target.value) || 0 } : x))} /></td>
+                        <td style={{ padding: '3px 8px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${((li.qty || 0) * (li.unit_price || 0)).toFixed(2)}</td>
+                        <td style={{ padding: '3px 4px' }}><button onClick={() => setLineItems(prev => prev.filter((_, idx) => idx !== i))} style={{ background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 16 }}>×</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -184,7 +214,7 @@ export default function BookingDetail({ booking: initial }: { booking: any }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button className="btn ghost small" onClick={saveQuote} disabled={saving}>{saving ? 'Saving…' : 'Save quote'}</button>
                 {quote.status === 'draft' && <button className="btn small" onClick={() => setQuoteStatus('sent')}>Mark sent</button>}
-                {quote.status === 'sent'  && <button className="btn small" onClick={() => setQuoteStatus('accepted')}>Mark accepted</button>}
+                {quote.status === 'sent' && <button className="btn small" onClick={() => setQuoteStatus('accepted')}>Mark accepted</button>}
               </div>
             </>
           ) : (
@@ -209,7 +239,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function QuoteBadge({ status }: { status: string }) {
-  const map: Record<string, [string,string]> = { draft: ['#f5f5f5','#737373'], sent: ['#eff6ff','#1d4ed8'], accepted: ['#f0fdf4','#15803d'] };
+  const map: Record<string, [string, string]> = { draft: ['#f5f5f5', '#737373'], sent: ['#eff6ff', '#1d4ed8'], accepted: ['#f0fdf4', '#15803d'] };
   const [bg, color] = map[status] ?? map.draft;
   return <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: bg, color, textTransform: 'capitalize' }}>{status}</span>;
 }

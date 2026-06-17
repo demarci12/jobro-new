@@ -28,6 +28,7 @@ function NewBookingForm() {
     if (prefillContact) {
       fetch(`/api/contacts/${prefillContact}`).then(r=>r.json()).then(d => { if (d.contact) { setContactName(d.contact.name); setContactSearch(d.contact.name); }});
     }
+    return () => clearTimeout(searchTimer.current);
   }, []);
 
   function handleSearchInput(val: string) {
@@ -51,11 +52,18 @@ function NewBookingForm() {
     if (!contactId) { setError('Please select a client.'); return; }
     setError(''); setLoading(true);
     const fd = new FormData(e.currentTarget);
+    const startVal = fd.get('start_time') as string;
+    const endVal = fd.get('end_time') as string;
+    const startDate = new Date(startVal);
+    let endDate = new Date(endVal);
+    if (!endVal || isNaN(endDate.getTime()) || endDate <= startDate) {
+      endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+    }
     const body: any = {
       contact_id: contactId,
       worker_id: fd.get('worker_id'),
-      start_time: new Date(fd.get('start_time') as string).toISOString(),
-      end_time: new Date(fd.get('end_time') as string).toISOString(),
+      start_time: startDate.toISOString(),
+      end_time: endDate.toISOString(),
     };
     if (fd.get('service_type_id')) body.service_type_id = fd.get('service_type_id');
     if (fd.get('address')) body.address = fd.get('address');
@@ -142,7 +150,15 @@ function NewBookingForm() {
             <div className="field-row">
               <div className="field-group">
                 <label className="field-label">Start time *</label>
-                <input id="start_time" name="start_time" type="datetime-local" required className="input" defaultValue={prefillStart} />
+                <input id="start_time" name="start_time" type="datetime-local" required className="input" defaultValue={prefillStart}
+                  onChange={e => {
+                    const endEl = document.getElementById('end_time') as HTMLInputElement;
+                    if (!endEl.value && e.target.value) {
+                      const d = new Date(e.target.value);
+                      d.setHours(d.getHours() + 1);
+                      endEl.value = d.toISOString().slice(0, 16);
+                    }
+                  }} />
               </div>
               <div className="field-group">
                 <label className="field-label">End time *</label>

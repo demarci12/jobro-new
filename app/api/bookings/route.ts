@@ -1,10 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { runBookingPipeline } from '@/lib/bookingPipeline';
+import { json } from '@/lib/schemas';
 import { z } from 'zod';
-import { type NextRequest, NextResponse } from 'next/server';
-
-const json = (data: unknown, status = 200) => NextResponse.json(data, { status });
+import { type NextRequest } from 'next/server';
 
 const CreateSchema = z.object({
   contact_id: z.string().min(1),
@@ -29,19 +28,26 @@ async function requireAuth() {
 export async function GET(request: NextRequest) {
   if (!await requireAuth()) return json({ error: 'Unauthorized' }, 401);
   const { searchParams } = request.nextUrl;
+
+  // Validate date params
+  const dateFrom = searchParams.get('date_from');
+  const dateTo = searchParams.get('date_to');
+  if (dateFrom && isNaN(new Date(dateFrom).getTime())) return json({ error: 'Invalid date_from' }, 400);
+  if (dateTo && isNaN(new Date(dateTo).getTime())) return json({ error: 'Invalid date_to' }, 400);
+
   const db = createAdminClient();
   let q = db
     .from('bookings')
-    .select('*, contacts(name,email,phone), workers(name), service_types(name), quotes(id,status,total), invoices(id,status,total)')
+    .select('*, contacts(name,email,phone), workers(name), service_types(name), quotes(id,status,total), invoices(id,status,total)', { count: 'exact' })
     .order('start_time', { ascending: false })
-    .limit(500);
+    .limit(200);
   if (searchParams.get('worker_id')) q = q.eq('worker_id', searchParams.get('worker_id')!);
-  if (searchParams.get('date_from')) q = q.gte('start_time', searchParams.get('date_from')!);
-  if (searchParams.get('date_to')) q = q.lte('start_time', searchParams.get('date_to')!);
+  if (dateFrom) q = q.gte('start_time', new Date(dateFrom).toISOString());
+  if (dateTo) q = q.lte('start_time', new Date(dateTo).toISOString());
   if (searchParams.get('status')) q = q.eq('status', searchParams.get('status')!);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) return json({ error: error.message }, 500);
-  return json(data);
+  return json({ data, total: count ?? 0 });
 }
 
 export async function POST(request: NextRequest) {

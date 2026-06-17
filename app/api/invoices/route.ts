@@ -1,21 +1,14 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { LineItemSchema, json } from '@/lib/schemas';
 import { z } from 'zod';
-import { type NextRequest, NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server';
 
-const db = () => createAdminClient();
-const json = (data: unknown, status = 200) => NextResponse.json(data, { status });
 async function requireAuth() { const s = await createClient(); const { data: { user } } = await s.auth.getUser(); return user; }
-
-const LineItemSchema = z.object({
-  description: z.string(),
-  qty: z.number().positive(),
-  unit_price: z.number().min(0),
-});
 
 const CreateSchema = z.object({
   booking_id: z.string().min(1),
-  line_items: z.array(LineItemSchema).optional().default([]),
+  line_items: z.array(LineItemSchema).max(100).optional().default([]),
   notes: z.string().optional(),
   due_date: z.string().optional(),
 });
@@ -23,8 +16,8 @@ const CreateSchema = z.object({
 export async function GET(request: NextRequest) {
   if (!await requireAuth()) return json({ error: 'Unauthorized' }, 401);
   const { searchParams } = request.nextUrl;
-  const db_ = db();
-  let q = db_.from('invoices')
+  const db = createAdminClient();
+  let q = db.from('invoices')
     .select('*, bookings(start_time, contacts(name,email))')
     .order('created_at', { ascending: false });
   if (searchParams.get('status')) q = q.eq('status', searchParams.get('status')!);
@@ -40,7 +33,7 @@ export async function POST(request: NextRequest) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return json({ error: parsed.error.issues.map(i => i.message).join(', ') }, 400);
 
-  const supabase = db();
+  const supabase = createAdminClient();
   const { data: booking } = await supabase
     .from('bookings')
     .select('id,contact_id,status,quotes(*)')
@@ -53,7 +46,7 @@ export async function POST(request: NextRequest) {
   if (lineItems.length === 0 && booking.quotes?.length) {
     lineItems = booking.quotes[0].line_items ?? [];
   }
-  const total = lineItems.reduce((s: number, li: any) => s + li.qty * li.unit_price, 0);
+  const total = lineItems.reduce((s: number, li: { qty: number; unit_price: number }) => s + li.qty * li.unit_price, 0);
 
   const { data: invoice, error } = await supabase.from('invoices').insert({
     booking_id: parsed.data.booking_id,
