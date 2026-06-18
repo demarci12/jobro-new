@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import ContactsClient from './ContactsClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export default async function ContactsPage() {
   const db = createAdminClient();

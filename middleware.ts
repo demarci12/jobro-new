@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC = ['/', '/login', '/api/auth/signin', '/api/auth/callback'];
+const PUBLIC = ['/', '/login', '/sign-up', '/pricing', '/api/auth/signin', '/api/auth/callback'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -39,5 +39,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Exclude static assets and API routes — API routes auth themselves
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)'],
 };

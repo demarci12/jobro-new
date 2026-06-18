@@ -4,7 +4,7 @@ import SettingsClient from './SettingsClient';
 
 export default async function SettingsPage() {
   const supabase = createAdminClient();
-  const { data: token } = await supabase.from('oauth_tokens').select('status, expires_at').eq('provider', 'google').maybeSingle();
+  const { data: token } = await supabase.from('oauth_tokens').select('status, expires_at').eq('provider', 'google').maybeSingle() as { data: { status: string; expires_at: string } | null };
 
   const authClient = await createClient();
   const { data: { user } } = await authClient.auth.getUser();

@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import QuotesClient from './QuotesClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export default async function QuotesPage() {
   const { data } = await createAdminClient()

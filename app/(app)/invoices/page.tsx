@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import InvoicesClient from './InvoicesClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 export default async function InvoicesPage() {
   const db = createAdminClient();
