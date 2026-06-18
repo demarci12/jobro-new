@@ -37,21 +37,30 @@ interface Popover {
   y: number;
 }
 
-export default function CalendarClient() {
+function mapToEvent(b: any): EventInput {
+  const c = STATUS_COLORS[b.status] ?? STATUS_COLORS.SCHEDULED;
+  return {
+    id: b.id,
+    title: b.contacts?.name ?? 'Unknown',
+    start: b.start_time,
+    end: b.end_time,
+    backgroundColor: c.bg,
+    borderColor: c.border,
+    textColor: c.text,
+    extendedProps: { worker: b.workers?.name ?? '', service: b.service_types?.name ?? '', status: b.status },
+    editable: b.status !== 'INVOICED' && b.status !== 'CANCELLED',
+  };
+}
+
+export default function CalendarClient({ workers }: { workers: { id: string; name: string }[] }) {
   const router = useRouter();
   const calRef = useRef<FullCalendar>(null);
-  const [events, setEvents] = useState<EventInput[]>([]);
-  const [workers, setWorkers] = useState<{ id: string; name: string }[]>([]);
+  // Use a ref for the filter so the event source callback stays stable
+  const workerFilterRef = useRef('');
   const [workerFilter, setWorkerFilter] = useState('');
   const [popover, setPopover] = useState<Popover | null>(null);
   const [statusChanging, setStatusChanging] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const workerFilterRef = useRef(workerFilter);
-  workerFilterRef.current = workerFilter;
-
-  useEffect(() => {
-    fetch('/api/workers').then(r => r.json()).then(setWorkers).catch(() => {});
-  }, []);
 
   // Close popover on outside click
   useEffect(() => {
@@ -68,32 +77,31 @@ export default function CalendarClient() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  const loadEvents = useCallback(async (from: Date, to: Date, wf?: string) => {
-    const filter = wf ?? workerFilterRef.current;
-    const params = new URLSearchParams({ date_from: from.toISOString(), date_to: to.toISOString() });
-    if (filter) params.set('worker_id', filter);
-    const r = await fetch(`/api/bookings?${params}`);
-    if (!r.ok) return;
-    const { data: bookings } = await r.json();
-    setEvents((bookings ?? []).map((b: any) => {
-      const c = STATUS_COLORS[b.status] ?? STATUS_COLORS.SCHEDULED;
-      return {
-        id: b.id,
-        title: b.contacts?.name ?? 'Unknown',
-        start: b.start_time,
-        end: b.end_time,
-        backgroundColor: c.bg,
-        borderColor: c.border,
-        textColor: c.text,
-        extendedProps: {
-          worker: b.workers?.name ?? '',
-          service: b.service_types?.name ?? '',
-          status: b.status,
-        },
-        editable: b.status !== 'INVOICED' && b.status !== 'CANCELLED',
-      };
-    }));
+  // Stable event source function — FullCalendar calls this when it needs a date range.
+  // Uses workerFilterRef so changing the filter doesn't recreate the function.
+  const fetchEvents = useCallback((
+    info: { startStr: string; endStr: string },
+    success: (events: EventInput[]) => void,
+    failure: (err: Error) => void,
+  ) => {
+    const params = new URLSearchParams({
+      date_from: info.startStr,
+      date_to: info.endStr,
+      slim: '1',
+    });
+    if (workerFilterRef.current) params.set('worker_id', workerFilterRef.current);
+    fetch(`/api/bookings?${params}`)
+      .then(r => r.json())
+      .then(({ data }) => success((data ?? []).map(mapToEvent)))
+      .catch(() => failure(new Error('Failed to load bookings')));
   }, []);
+
+  function handleWorkerChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const wf = e.target.value;
+    workerFilterRef.current = wf;
+    setWorkerFilter(wf);
+    calRef.current?.getApi().refetchEvents();
+  }
 
   function handleEventClick(info: EventClickArg) {
     const rect = info.el.getBoundingClientRect();
@@ -120,19 +128,13 @@ export default function CalendarClient() {
     const start = event.start?.toISOString();
     const end = event.end?.toISOString();
     if (!start || !end) { revert(); return; }
-
     const r = await fetch(`/api/bookings/${event.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ start_time: start, end_time: end }),
     });
-    if (!r.ok) {
-      const d = await r.json();
-      revert();
-      showToast(d.error ?? 'Could not reschedule', false);
-    } else {
+    if (!r.ok) { const d = await r.json(); revert(); showToast(d.error ?? 'Could not reschedule', false); }
+    else {
       showToast('Booking rescheduled');
-      // Update popover if open for this event
       if (popover?.eventId === event.id) setPopover(p => p ? { ...p, start, end } : null);
     }
   }
@@ -142,47 +144,26 @@ export default function CalendarClient() {
     const start = event.start?.toISOString();
     const end = event.end?.toISOString();
     if (!start || !end) { revert(); return; }
-
     const r = await fetch(`/api/bookings/${event.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ start_time: start, end_time: end }),
     });
-    if (!r.ok) {
-      const d = await r.json();
-      revert();
-      showToast(d.error ?? 'Could not resize booking', false);
-    } else {
-      showToast('Booking updated');
-    }
-  }
-
-  function handleWorkerChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const wf = e.target.value;
-    setWorkerFilter(wf);
-    const api = calRef.current?.getApi();
-    if (api) loadEvents(api.view.activeStart, api.view.activeEnd, wf);
+    if (!r.ok) { const d = await r.json(); revert(); showToast(d.error ?? 'Could not resize booking', false); }
+    else showToast('Booking updated');
   }
 
   async function changeStatus(newStatus: string) {
     if (!popover) return;
     setStatusChanging(true);
     const r = await fetch(`/api/bookings/${popover.eventId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     });
     setStatusChanging(false);
-    if (!r.ok) {
-      const d = await r.json();
-      showToast(d.error ?? 'Status update failed', false);
-      return;
-    }
+    if (!r.ok) { const d = await r.json(); showToast(d.error ?? 'Status update failed', false); return; }
     showToast(`Status → ${newStatus.replace('_', ' ')}`);
     setPopover(p => p ? { ...p, status: newStatus } : null);
-    // Refresh calendar events
-    const api = calRef.current?.getApi();
-    if (api) loadEvents(api.view.activeStart, api.view.activeEnd);
+    calRef.current?.getApi().refetchEvents();
   }
 
   const transitions = popover ? STATUS_TRANSITIONS[popover.status] ?? [] : [];
@@ -207,12 +188,10 @@ export default function CalendarClient() {
         </div>
       </div>
 
-      {/* Drag hint */}
       <p className="text-xs text-slate-400 mb-2">
         Drag events to reschedule · Resize to adjust duration · Click a slot to create · Click an event for details
       </p>
 
-      {/* Calendar */}
       <div className="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden">
         <FullCalendar
           ref={calRef}
@@ -232,8 +211,8 @@ export default function CalendarClient() {
           eventStartEditable={true}
           dragScroll={true}
           snapDuration="00:15:00"
-          events={events}
-          datesSet={({ start, end }) => loadEvents(start, end)}
+          lazyFetching={true}
+          events={fetchEvents}
           eventClick={handleEventClick}
           select={handleDateSelect}
           eventDrop={handleEventDrop}
@@ -309,7 +288,6 @@ export default function CalendarClient() {
         </div>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg transition-all ${toast.ok ? 'bg-slate-900 text-white' : 'bg-red-600 text-white'}`}>
           {toast.msg}
@@ -346,15 +324,9 @@ function renderEvent(info: any) {
       <div style={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {info.event.title}
       </div>
-      {tall && (
-        <div style={{ fontSize: 10, opacity: 0.75, marginTop: 1 }}>{start} – {end}</div>
-      )}
-      {veryTall && service && (
-        <div style={{ fontSize: 10, opacity: 0.65, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{service}</div>
-      )}
-      {veryTall && worker && (
-        <div style={{ fontSize: 10, opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👤 {worker}</div>
-      )}
+      {tall && <div style={{ fontSize: 10, opacity: 0.75, marginTop: 1 }}>{start} – {end}</div>}
+      {veryTall && service && <div style={{ fontSize: 10, opacity: 0.65, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{service}</div>}
+      {veryTall && worker && <div style={{ fontSize: 10, opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>👤 {worker}</div>}
     </div>
   );
 }

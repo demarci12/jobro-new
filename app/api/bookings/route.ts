@@ -38,9 +38,14 @@ export async function GET(request: NextRequest) {
   if (dateTo && isNaN(new Date(dateTo).getTime())) return json({ error: 'Invalid date_to' }, 400);
 
   const db = createAdminClient();
+  // slim=1: calendar view — skip quotes/invoices joins for faster response
+  const slim = searchParams.get('slim') === '1';
+  const selectFields = slim
+    ? '*, contacts(name), workers(name), service_types(name)'
+    : '*, contacts(name,email,phone), workers(name), service_types(name), quotes(id,status,total), invoices(id,status,total)';
   let q = db
     .from('bookings')
-    .select('*, contacts(name,email,phone), workers(name), service_types(name), quotes(id,status,total), invoices(id,status,total)', { count: 'exact' })
+    .select(selectFields, { count: 'exact' })
     .order('start_time', { ascending: false })
     .limit(200);
   if (searchParams.get('worker_id')) q = q.eq('worker_id', searchParams.get('worker_id')!);
