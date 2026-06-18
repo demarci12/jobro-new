@@ -15,7 +15,8 @@ export default function BookingsClient({ initialBookings, workers }: { initialBo
     const params = new URLSearchParams();
     if (wf) params.set('worker_id', wf);
     const r = await fetch(`/api/bookings?${params}`);
-    setBookings(r.ok ? await r.json() : []);
+    const json = r.ok ? await r.json() : {};
+    setBookings(json.data ?? []);
     setLoading(false);
   }
 
