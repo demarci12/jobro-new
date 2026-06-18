@@ -24,33 +24,35 @@ export default function NewContactPage() {
 
   return (
     <div>
-      <Link href="/contacts" className="back">← Clients</Link>
-      <h1 className="page-title" style={{ marginBottom: 24 }}>New client</h1>
+      <Link href="/contacts" className="text-sm text-slate-500 hover:text-slate-700 no-underline mb-5 inline-block">← Clients</Link>
+      <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-6">New client</h1>
 
-      <div className="card" style={{ maxWidth: 520 }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div className="field-group">
-            <label className="field-label">Name *</label>
-            <input name="name" required className="input" placeholder="Full name" />
+      <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-lg">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Name *</label>
+            <input name="name" required className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" placeholder="Full name" />
           </div>
-          <div className="field-row">
-            <div className="field-group">
-              <label className="field-label">Email</label>
-              <input name="email" type="email" className="input" placeholder="email@example.com" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+              <input name="email" type="email" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" placeholder="email@example.com" />
             </div>
-            <div className="field-group">
-              <label className="field-label">Phone</label>
-              <input name="phone" className="input" placeholder="+1 555 000 0000" />
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+              <input name="phone" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" placeholder="+1 555 000 0000" />
             </div>
           </div>
-          <div className="field-group">
-            <label className="field-label">Address</label>
-            <input name="address" className="input" placeholder="Street address" />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Address</label>
+            <input name="address" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" placeholder="Street address" />
           </div>
-          {error && <div className="form-error">{error}</div>}
-          <div className="form-actions">
-            <Link href="/contacts" className="btn ghost">Cancel</Link>
-            <button type="submit" className="btn" disabled={loading}>{loading ? 'Creating…' : 'Create client'}</button>
+          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
+          <div className="flex gap-3 pt-1">
+            <Link href="/contacts" className="h-9 px-4 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors inline-flex items-center">Cancel</Link>
+            <button type="submit" disabled={loading} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              {loading ? 'Creating…' : 'Create client'}
+            </button>
           </div>
         </form>
       </div>

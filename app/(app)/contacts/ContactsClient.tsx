@@ -30,70 +30,71 @@ export default function ContactsClient({ initialData, initialTotal }: { initialD
 
   return (
     <div>
-      <div className="page-header">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">Clients</h1>
-          <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 2 }}>Manage your clients and booking history</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Clients</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage your clients and booking history</p>
         </div>
-        <Link href="/contacts/new" className="btn">+ Add client</Link>
+        <Link href="/contacts/new" className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ Add client</Link>
       </div>
 
-      <div style={{ position: 'relative', maxWidth: 400, marginBottom: 20 }}>
-        <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }}
-          width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <div className="relative max-w-sm mb-5">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
           <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
         </svg>
-        <input className="input" style={{ paddingLeft: 36 }} placeholder="Search clients…"
-          value={q} onChange={e => handleSearch(e.target.value)} />
+        <input
+          className="flex h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          placeholder="Search clients…"
+          value={q}
+          onChange={e => handleSearch(e.target.value)}
+        />
       </div>
 
-      <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
+      <p className="text-xs text-slate-400 mb-3">
         {total} client{total !== 1 ? 's' : ''}{q ? ` matching "${q}"` : ''}
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+      <div className="flex flex-col gap-1.5" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
         {contacts.length === 0 ? (
-          <div className="empty-state">
-            {q ? `No clients found for "${q}"` : 'No clients yet.'}
-            {!q && <><br /><Link href="/contacts/new" className="btn" style={{ marginTop: 16 }}>Add your first client</Link></>}
+          <div className="text-center py-16 text-slate-400 text-sm">
+            {q ? `No clients found for "${q}"` : (
+              <>
+                No clients yet.
+                <div className="mt-4"><Link href="/contacts/new" className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">Add your first client</Link></div>
+              </>
+            )}
           </div>
         ) : contacts.map((c: any) => {
           const initials = c.name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase();
           const count = c.bookings?.[0]?.count ?? 0;
           return (
-            <Link key={c.id} href={`/contacts/${c.id}`} style={{
-              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-              background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 10,
-              textDecoration: 'none', color: 'var(--ink)', transition: 'border-color 0.12s, box-shadow 0.12s',
-            }}
-            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#2563eb'; el.style.boxShadow = '0 1px 8px rgba(37,99,235,0.08)'; }}
-            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'var(--line)'; el.style.boxShadow = 'none'; }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#e8eeff', color: '#2563eb', fontSize: 14, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Link key={c.id} href={`/contacts/${c.id}`} className="flex items-center gap-4 px-4 py-3.5 bg-white border border-slate-200 rounded-xl no-underline hover:border-blue-300 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 text-sm font-bold shrink-0 flex items-center justify-center">
                 {initials}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>{c.name}</div>
-                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--muted)', marginTop: 2, flexWrap: 'wrap' }}>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-slate-900">{c.name}</div>
+                <div className="flex gap-3 text-xs text-slate-400 mt-0.5 flex-wrap">
                   {c.email && <span>{c.email}</span>}
                   {c.phone && <span>{c.phone}</span>}
                   {c.address && <span>{c.address}</span>}
                 </div>
               </div>
-              <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>booking{count !== 1 ? 's' : ''}</div>
+              <div className="text-center shrink-0">
+                <div className="text-lg font-bold text-slate-800 leading-none">{count}</div>
+                <div className="text-xs text-slate-400 mt-0.5">booking{count !== 1 ? 's' : ''}</div>
               </div>
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="var(--muted)" strokeWidth="1.5"><path d="M7 5l5 5-5 5"/></svg>
+              <svg className="text-slate-300" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M7 5l5 5-5 5"/></svg>
             </Link>
           );
         })}
       </div>
 
       {pages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 24 }}>
-          <button className="btn ghost small" disabled={page <= 1} onClick={() => search(q, page - 1)}>← Prev</button>
-          <span style={{ fontSize: 13, color: 'var(--muted)' }}>Page {page} of {pages}</span>
-          <button className="btn ghost small" disabled={page >= pages} onClick={() => search(q, page + 1)}>Next →</button>
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <button className="h-8 px-3 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors" disabled={page <= 1} onClick={() => search(q, page - 1)}>← Prev</button>
+          <span className="text-sm text-slate-400">Page {page} of {pages}</span>
+          <button className="h-8 px-3 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-colors" disabled={page >= pages} onClick={() => search(q, page + 1)}>Next →</button>
         </div>
       )}
     </div>

@@ -39,51 +39,47 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p style={{ fontSize: 14, color: 'var(--muted)', marginTop: 4 }}>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
             {today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/bookings/new" className="btn">+ New booking</Link>
-          <Link href="/contacts/new" className="btn ghost">+ New client</Link>
+        <div className="flex gap-2">
+          <Link href="/bookings/new" className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ New booking</Link>
+          <Link href="/contacts/new" className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors inline-flex items-center">+ New client</Link>
         </div>
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div className="grid grid-cols-4 gap-4 mb-7">
         <StatCard label="Today's bookings" value={String(todayBookings?.length ?? 0)} href="/bookings" />
-        <StatCard label="In progress" value={String(inProgress?.length ?? 0)} href="/bookings" accent={inProgress?.length ? '#f97316' : undefined} />
-        <StatCard label="Unpaid invoices" value={String(pendingInvoices?.length ?? 0)} href="/invoices" accent={pendingInvoices?.length ? '#dc2626' : undefined} />
+        <StatCard label="In progress" value={String(inProgress?.length ?? 0)} href="/bookings" accent={inProgress?.length ? 'text-orange-500' : undefined} />
+        <StatCard label="Unpaid invoices" value={String(pendingInvoices?.length ?? 0)} href="/invoices" accent={pendingInvoices?.length ? 'text-red-600' : undefined} />
         <StatCard label="Revenue outstanding" value={`$${pendingTotal.toFixed(2)}`} href="/invoices" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="grid grid-cols-2 gap-5">
         {/* Today's schedule */}
-        <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontWeight: 700, fontSize: 15 }}>Today's schedule</span>
-            <Link href="/calendar" style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none' }}>Open calendar →</Link>
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-sm font-bold text-slate-900">Today&apos;s schedule</span>
+            <Link href="/calendar" className="text-xs text-blue-600 hover:underline no-underline">Open calendar →</Link>
           </div>
           {!todayBookings?.length ? (
-            <p style={{ fontSize: 13, color: 'var(--muted)' }}>No bookings today.</p>
+            <p className="text-sm text-slate-400">No bookings today.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {todayBookings.map((b: any) => (
-                <Link key={b.id} href={`/bookings/${b.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{
-                    display: 'flex', gap: 12, alignItems: 'center',
-                    padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)',
-                    background: 'var(--canvas)', transition: 'background 0.1s',
-                  }}>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', width: 80, flexShrink: 0 }}>
+                <Link key={b.id} href={`/bookings/${b.id}`} className="no-underline">
+                  <div className="flex gap-3 items-center px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <div className="text-xs text-slate-400 w-16 shrink-0">
                       {new Date(b.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b.contacts as any)?.name ?? '—'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{(b.workers as any)?.name ?? '—'} · {(b.service_types as any)?.name ?? 'Service'}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold truncate text-slate-900">{(b.contacts as any)?.name ?? '—'}</div>
+                      <div className="text-xs text-slate-400">{(b.workers as any)?.name ?? '—'} · {(b.service_types as any)?.name ?? 'Service'}</div>
                     </div>
                     <StatusDot status={b.status} />
                   </div>
@@ -94,31 +90,23 @@ export default async function DashboardPage() {
         </div>
 
         {/* Pending invoices */}
-        <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontWeight: 700, fontSize: 15 }}>Pending invoices</span>
-            <Link href="/invoices" style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none' }}>All invoices →</Link>
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-sm font-bold text-slate-900">Pending invoices</span>
+            <Link href="/invoices" className="text-xs text-blue-600 hover:underline no-underline">All invoices →</Link>
           </div>
           {!pendingInvoices?.length ? (
-            <p style={{ fontSize: 13, color: 'var(--muted)' }}>No outstanding invoices.</p>
+            <p className="text-sm text-slate-400">No outstanding invoices.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {pendingInvoices.map((inv: any) => (
-                <Link key={inv.id} href={`/invoices/${inv.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)',
-                    background: 'var(--canvas)',
-                  }}>
+                <Link key={inv.id} href={`/invoices/${inv.id}`} className="no-underline">
+                  <div className="flex justify-between items-center px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{inv.bookings?.contacts?.name ?? '—'}</div>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 999, textTransform: 'capitalize',
-                        background: inv.status === 'sent' ? '#eff6ff' : '#f5f5f5',
-                        color: inv.status === 'sent' ? '#1d4ed8' : '#737373',
-                      }}>{inv.status}</span>
+                      <div className="text-sm font-semibold text-slate-900">{inv.bookings?.contacts?.name ?? '—'}</div>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${inv.status === 'sent' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>{inv.status}</span>
                     </div>
-                    <span style={{ fontWeight: 700, fontSize: 15 }}>${parseFloat(inv.total ?? 0).toFixed(2)}</span>
+                    <span className="text-sm font-bold text-slate-900">${parseFloat(inv.total ?? 0).toFixed(2)}</span>
                   </div>
                 </Link>
               ))}
@@ -132,18 +120,18 @@ export default async function DashboardPage() {
 
 function StatCard({ label, value, href, accent }: { label: string; value: string; href: string; accent?: string }) {
   return (
-    <Link href={href} style={{ textDecoration: 'none' }}>
-      <div className="card" style={{ cursor: 'pointer' }}>
-        <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{label}</div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: accent ?? 'var(--ink)', letterSpacing: '-0.02em' }}>{value}</div>
+    <Link href={href} className="no-underline">
+      <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-colors cursor-pointer">
+        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-2">{label}</div>
+        <div className={`text-3xl font-extrabold tracking-tight ${accent ?? 'text-slate-900'}`}>{value}</div>
       </div>
     </Link>
   );
 }
 
 function StatusDot({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    SCHEDULED: '#3b82f6', IN_PROGRESS: '#f97316', FINISHED: '#22c55e', CANCELLED: '#9ca3af',
+  const cls: Record<string, string> = {
+    SCHEDULED: 'bg-blue-500', IN_PROGRESS: 'bg-orange-500', FINISHED: 'bg-green-500', CANCELLED: 'bg-slate-300',
   };
-  return <div style={{ width: 8, height: 8, borderRadius: '50%', background: colors[status] ?? '#9ca3af', flexShrink: 0 }} />;
+  return <div className={`w-2 h-2 rounded-full shrink-0 ${cls[status] ?? 'bg-slate-300'}`} />;
 }

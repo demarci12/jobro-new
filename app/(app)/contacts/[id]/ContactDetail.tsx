@@ -8,54 +8,69 @@ export default function ContactDetail({ contact, bookings, total }: { contact: a
     draft: ['#f5f5f5', '#737373'], sent: ['#eff6ff', '#1d4ed8'], accepted: ['#f0fdf4', '#15803d'],
   };
 
+  const BOOKING_STATUS: Record<string, string> = {
+    SCHEDULED: 'bg-blue-50 text-blue-700', IN_PROGRESS: 'bg-orange-50 text-orange-700',
+    FINISHED: 'bg-green-50 text-green-700', CANCELLED: 'bg-slate-100 text-slate-500', INVOICED: 'bg-purple-50 text-purple-700',
+  };
+  const QUOTE_STATUS: Record<string, string> = {
+    draft: 'bg-slate-100 text-slate-500', sent: 'bg-blue-50 text-blue-700', accepted: 'bg-green-50 text-green-700',
+  };
+
   return (
     <div>
-      <div className="page-header">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <Link href="/contacts" className="back">← Clients</Link>
-          <h1 className="page-title">{contact.name}</h1>
+          <Link href="/contacts" className="text-sm text-slate-500 hover:text-slate-700 no-underline mb-2 inline-block">← Clients</Link>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{contact.name}</h1>
         </div>
-        <Link href={`/bookings/new?contact_id=${contact.id}`} className="btn">+ New booking</Link>
+        <Link href={`/bookings/new?contact_id=${contact.id}`} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ New booking</Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: 16, marginBottom: 32 }}>
-        <div className="card">
-          <div className="card-header">Contact details</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {contact.email && <Row label="Email"><a href={`mailto:${contact.email}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{contact.email}</a></Row>}
-            {contact.phone && <Row label="Phone"><a href={`tel:${contact.phone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{contact.phone}</a></Row>}
+      <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: '1fr 160px' }}>
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Contact details</h2>
+          <div className="flex flex-col gap-2.5">
+            {contact.email && <Row label="Email"><a href={`mailto:${contact.email}`} className="text-blue-600 no-underline hover:underline">{contact.email}</a></Row>}
+            {contact.phone && <Row label="Phone"><a href={`tel:${contact.phone}`} className="text-blue-600 no-underline hover:underline">{contact.phone}</a></Row>}
             {contact.address && <Row label="Address"><span>{contact.address}</span></Row>}
-            {!contact.email && !contact.phone && !contact.address && <span style={{ fontSize: 13, color: 'var(--muted)' }}>No details on file</span>}
+            {!contact.email && !contact.phone && !contact.address && <span className="text-sm text-slate-400">No details on file</span>}
           </div>
         </div>
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.03em' }}>{total}</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Total bookings</div>
+        <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col items-center justify-center text-center">
+          <div className="text-4xl font-extrabold tracking-tight text-slate-900">{total}</div>
+          <div className="text-xs text-slate-400 mt-1">Total bookings</div>
         </div>
       </div>
 
-      <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Booking history</h2>
-      <div className="table-wrap">
-        <table className="table">
+      <h2 className="text-sm font-bold text-slate-900 mb-3">Booking history</h2>
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
           <thead>
-            <tr><th>Date & time</th><th>Worker</th><th>Service</th><th>Quote</th><th>Status</th></tr>
+            <tr className="border-b border-slate-200 bg-slate-50">
+              {['Date & time', 'Worker', 'Service', 'Quote', 'Status'].map(h => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {bookings.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: 32, fontSize: 13 }}>No bookings yet</td></tr>
+              <tr><td colSpan={5} className="text-center text-slate-400 py-10 text-sm">No bookings yet</td></tr>
             ) : bookings.map((b: any) => {
               const q = b.quotes?.[0];
-              const [qBg, qColor] = q ? (qMap[q.status] ?? qMap.draft) : ['', ''];
               return (
-                <tr key={b.id} className="tr-link" onClick={() => router.push(`/bookings/${b.id}`)}>
-                  <td>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{new Date(b.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                    <div style={{ fontSize: 13, color: 'var(--muted)' }}>{new Date(b.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                <tr key={b.id} onClick={() => router.push(`/bookings/${b.id}`)} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-slate-900">{new Date(b.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div className="text-xs text-slate-400">{new Date(b.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>{b.workers?.name ?? '—'}</td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>{b.service_types?.name ?? '—'}</td>
-                  <td>{q ? <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: qBg, color: qColor, textTransform: 'capitalize' }}>{q.status}</span> : <span style={{ color: 'var(--muted)' }}>—</span>}</td>
-                  <td><span className={`badge badge-${b.status.toLowerCase().replace('_','-')}`}>{b.status.replace('_',' ')}</span></td>
+                  <td className="px-4 py-3 text-slate-500">{b.workers?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">{b.service_types?.name ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    {q ? <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${QUOTE_STATUS[q.status] ?? QUOTE_STATUS.draft}`}>{q.status}</span> : <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${BOOKING_STATUS[b.status] ?? 'bg-slate-100 text-slate-500'}`}>{b.status.replace('_', ' ')}</span>
+                  </td>
                 </tr>
               );
             })}
@@ -68,8 +83,8 @@ export default function ContactDetail({ contact, bookings, total }: { contact: a
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 12, fontSize: 14, alignItems: 'baseline' }}>
-      <span style={{ color: 'var(--muted)', fontSize: 12, width: 56, flexShrink: 0 }}>{label}</span>
+    <div className="flex gap-3 text-sm items-baseline">
+      <span className="text-xs text-slate-400 w-14 shrink-0">{label}</span>
       {children}
     </div>
   );

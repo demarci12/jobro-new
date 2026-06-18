@@ -81,55 +81,54 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
   const quote = booking.quotes?.[0];
   const total = lineItems.reduce((s, li) => s + (li.qty || 0) * (li.unit_price || 0), 0);
 
+  const STATUS_CLS: Record<string, string> = {
+    SCHEDULED: 'bg-blue-50 text-blue-700', IN_PROGRESS: 'bg-orange-50 text-orange-700',
+    FINISHED: 'bg-green-50 text-green-700', CANCELLED: 'bg-slate-100 text-slate-500', INVOICED: 'bg-purple-50 text-purple-700',
+  };
+  const inputCls = 'h-8 w-full rounded border-transparent bg-transparent px-1.5 text-sm focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500';
+
   return (
     <div>
       {booking.google_sync_status !== 'synced' && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, marginBottom: 20, fontSize: 13, color: '#92400e' }}>
+        <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg mb-5 text-sm text-amber-700">
           <span>⏱ Calendar sync {booking.google_sync_status === 'failed' ? 'failed — reconnect Google Calendar' : 'pending'}</span>
-          {booking.google_sync_status === 'failed' && <a href="/api/auth/google" className="btn ghost small">Reconnect</a>}
+          {booking.google_sync_status === 'failed' && <a href="/api/auth/google" className="h-7 px-2.5 rounded-md border border-amber-300 text-xs font-medium hover:bg-amber-100 transition-colors">Reconnect</a>}
         </div>
       )}
 
       {error && (
-        <div style={{ padding: '10px 16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, marginBottom: 16, fontSize: 13, color: '#b91c1c' }}>
-          {error}
-        </div>
+        <div className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg mb-4 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="page-header">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <Link href={`/contacts/${booking.contact_id}`} className="back">← {booking.contacts?.name ?? 'Client'}</Link>
-          <h1 className="page-title">{new Date(booking.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h1>
+          <Link href={`/contacts/${booking.contact_id}`} className="text-sm text-slate-500 hover:text-slate-700 no-underline mb-2 inline-block">← {booking.contacts?.name ?? 'Client'}</Link>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{new Date(booking.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className={`badge badge-${sc}`}>{booking.status.replace('_', ' ')}</span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_CLS[booking.status] ?? 'bg-slate-100 text-slate-500'}`}>{booking.status.replace('_', ' ')}</span>
           {booking.status !== 'INVOICED' && booking.status !== 'CANCELLED' && (
-            <select className="input" style={{ width: 'auto', fontSize: 13, padding: '6px 10px' }} value={booking.status} onChange={e => patchStatus(e.target.value)}>
+            <select className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" value={booking.status} onChange={e => patchStatus(e.target.value)}>
               {(['SCHEDULED', 'IN_PROGRESS', 'FINISHED', 'CANCELLED'] as const).map(s => <option key={s}>{s}</option>)}
             </select>
           )}
           {booking.status === 'FINISHED' && !invoice && (
-            <button className="btn small" style={{ background: '#16a34a' }} onClick={createInvoice}>Create invoice</button>
+            <button className="h-9 px-3 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors" onClick={createInvoice}>Create invoice</button>
           )}
           {invoice && (
-            <Link href={`/invoices/${invoice.id}`} className="btn ghost small">View invoice →</Link>
+            <Link href={`/invoices/${invoice.id}`} className="h-9 px-3 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center">View invoice →</Link>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', marginBottom: 24 }}>
+      <div className="flex border-b border-slate-200 mb-6">
         {(['details', 'quote', 'documentation', 'invoice'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '10px 16px', fontSize: 14,
-            fontWeight: tab === t ? 600 : 500,
-            color: tab === t ? 'var(--blue)' : 'var(--ink)',
-            borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-            borderBottom: `2px solid ${tab === t ? 'var(--blue)' : 'transparent'}`,
-            background: 'none',
-            cursor: 'pointer', fontFamily: 'inherit', marginBottom: -1,
-            textTransform: 'capitalize',
-          }}>
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2.5 text-sm border-b-2 -mb-px transition-colors capitalize ${tab === t ? 'border-blue-600 text-blue-700 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} bg-transparent cursor-pointer`}
+          >
             {t === 'details' ? 'Job details' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
@@ -144,83 +143,89 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
       )}
 
       {tab === 'invoice' && (
-        <div className="card">
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
           {invoice ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 14 }}>Invoice exists for this booking.</span>
-              <Link href={`/invoices/${invoice.id}`} className="btn ghost small">Open invoice →</Link>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Invoice exists for this booking.</span>
+              <Link href={`/invoices/${invoice.id}`} className="h-8 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center">Open invoice →</Link>
             </div>
           ) : booking.status === 'FINISHED' ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 14, color: 'var(--muted)' }}>No invoice yet.</span>
-              <button className="btn small" style={{ background: '#16a34a' }} onClick={createInvoice}>Create invoice</button>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">No invoice yet.</span>
+              <button className="h-8 px-3 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-colors" onClick={createInvoice}>Create invoice</button>
             </div>
           ) : (
-            <p style={{ fontSize: 14, color: 'var(--muted)' }}>Invoice can be created once the job is finished.</p>
+            <p className="text-sm text-slate-400">Invoice can be created once the job is finished.</p>
           )}
         </div>
       )}
 
       {tab === 'details' && (
-        <div className="card">
-          <div className="card-header">Job details</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">Job details</h2>
+          <div className="flex flex-col gap-2.5">
             <Row label="Time">{new Date(booking.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} – {new Date(booking.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</Row>
-            <Row label="Client"><Link href={`/contacts/${booking.contact_id}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{booking.contacts?.name ?? '—'}</Link></Row>
+            <Row label="Client"><Link href={`/contacts/${booking.contact_id}`} className="text-blue-600 no-underline hover:underline">{booking.contacts?.name ?? '—'}</Link></Row>
             <Row label="Worker">{booking.workers?.name ?? '—'}</Row>
             <Row label="Service">{booking.service_types?.name ?? '—'}</Row>
             <Row label="Address">{booking.address ?? '—'}</Row>
             <Row label="Price">{booking.price != null ? `$${parseFloat(booking.price).toFixed(2)}` : '—'}</Row>
-            {booking.google_meet_link && <Row label="Meet"><a href={booking.google_meet_link} target="_blank" style={{ color: '#2563eb', textDecoration: 'none' }}>Join Google Meet ↗</a></Row>}
+            {booking.google_meet_link && <Row label="Meet"><a href={booking.google_meet_link} target="_blank" className="text-blue-600 no-underline hover:underline">Join Google Meet ↗</a></Row>}
           </div>
         </div>
       )}
 
       {tab === 'quote' && (
-        <div className="card">
-          <div className="card-header">
-            Quote
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Quote</h2>
             {quote && <QuoteBadge status={quote.status} />}
           </div>
           {quote ? (
             <>
-              <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <div className="border border-slate-200 rounded-lg overflow-hidden mb-3">
+                <table className="w-full text-sm">
                   <thead>
-                    <tr style={{ background: 'var(--canvas)' }}>
+                    <tr className="bg-slate-50 border-b border-slate-200">
                       {['Description', 'Qty', 'Price', 'Total', ''].map(h => (
-                        <th key={h} style={{ padding: '7px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', borderBottom: '1px solid var(--line)' }}>{h}</th>
+                        <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {lineItems.map((li, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--line)' }}>
-                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid transparent', padding: '4px 6px', fontSize: 13 }} value={li.description} onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} placeholder="Description" /></td>
-                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid transparent', width: 60, textAlign: 'right', padding: '4px 6px', fontSize: 13 }} type="number" value={li.qty} onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, qty: parseFloat(e.target.value) || 1 } : x))} /></td>
-                        <td style={{ padding: '3px 4px' }}><input className="input" style={{ borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '1px solid transparent', width: 72, textAlign: 'right', padding: '4px 6px', fontSize: 13 }} type="number" value={li.unit_price} step="0.01" onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, unit_price: parseFloat(e.target.value) || 0 } : x))} /></td>
-                        <td style={{ padding: '3px 8px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${((li.qty || 0) * (li.unit_price || 0)).toFixed(2)}</td>
-                        <td style={{ padding: '3px 4px' }}><button onClick={() => setLineItems(prev => prev.filter((_, idx) => idx !== i))} style={{ background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 16 }}>×</button></td>
+                      <tr key={i} className="border-b border-slate-100 last:border-0">
+                        <td className="px-1.5 py-1"><input className={inputCls} value={li.description} onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} placeholder="Description" /></td>
+                        <td className="px-1.5 py-1"><input className={inputCls + ' w-14 text-right'} type="number" value={li.qty} onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, qty: parseFloat(e.target.value) || 1 } : x))} /></td>
+                        <td className="px-1.5 py-1"><input className={inputCls + ' w-20 text-right'} type="number" value={li.unit_price} step="0.01" onChange={e => setLineItems(prev => prev.map((x, idx) => idx === i ? { ...x, unit_price: parseFloat(e.target.value) || 0 } : x))} /></td>
+                        <td className="px-3 py-2 font-semibold text-right whitespace-nowrap text-slate-800">${((li.qty || 0) * (li.unit_price || 0)).toFixed(2)}</td>
+                        <td className="px-1.5 py-1"><button onClick={() => setLineItems(prev => prev.filter((_, idx) => idx !== i))} className="text-slate-300 hover:text-red-400 text-lg leading-none bg-transparent border-none cursor-pointer">×</button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <button className="btn ghost small" onClick={() => setLineItems(prev => [...prev, { description: '', qty: 1, unit_price: 0 }])}>+ Add item</button>
-                <span style={{ fontSize: 14, color: 'var(--muted)' }}>Total: <strong style={{ fontSize: 16, color: 'var(--ink)' }}>${total.toFixed(2)}</strong></span>
+              <div className="flex justify-between items-center mb-3">
+                <button className="h-8 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" onClick={() => setLineItems(prev => [...prev, { description: '', qty: 1, unit_price: 0 }])}>+ Add item</button>
+                <span className="text-sm text-slate-500">Total: <strong className="text-base font-bold text-slate-900">${total.toFixed(2)}</strong></span>
               </div>
-              <textarea className="input" style={{ minHeight: 60, resize: 'vertical', marginBottom: 10, fontSize: 13 }} placeholder="Notes…" value={notes} onChange={e => setNotes(e.target.value)} />
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button className="btn ghost small" onClick={saveQuote} disabled={saving}>{saving ? 'Saving…' : 'Save quote'}</button>
-                {quote.status === 'draft' && <button className="btn small" onClick={() => setQuoteStatus('sent')}>Mark sent</button>}
-                {quote.status === 'sent' && <button className="btn small" onClick={() => setQuoteStatus('accepted')}>Mark accepted</button>}
+              <textarea
+                className="flex w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 mb-3"
+                style={{ minHeight: 56, resize: 'vertical' }}
+                placeholder="Notes…"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+              />
+              <div className="flex gap-2 flex-wrap">
+                <button className="h-8 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors" onClick={saveQuote} disabled={saving}>{saving ? 'Saving…' : 'Save quote'}</button>
+                {quote.status === 'draft' && <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors" onClick={() => setQuoteStatus('sent')}>Mark sent</button>}
+                {quote.status === 'sent' && <button className="h-8 px-3 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-colors" onClick={() => setQuoteStatus('accepted')}>Mark accepted</button>}
               </div>
             </>
           ) : (
             <>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>No quote yet.</p>
-              <button className="btn ghost small" onClick={createQuote}>Create quote</button>
+              <p className="text-sm text-slate-400 mb-3">No quote yet.</p>
+              <button className="h-8 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" onClick={createQuote}>Create quote</button>
             </>
           )}
         </div>
@@ -231,15 +236,14 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 12, fontSize: 14, alignItems: 'baseline' }}>
-      <span style={{ color: 'var(--muted)', fontSize: 12, width: 60, flexShrink: 0 }}>{label}</span>
-      <span style={{ color: 'var(--ink)' }}>{children}</span>
+    <div className="flex gap-3 text-sm items-baseline">
+      <span className="text-xs text-slate-400 w-16 shrink-0">{label}</span>
+      <span className="text-slate-800">{children}</span>
     </div>
   );
 }
 
 function QuoteBadge({ status }: { status: string }) {
-  const map: Record<string, [string, string]> = { draft: ['#f5f5f5', '#737373'], sent: ['#eff6ff', '#1d4ed8'], accepted: ['#f0fdf4', '#15803d'] };
-  const [bg, color] = map[status] ?? map.draft;
-  return <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: bg, color, textTransform: 'capitalize' }}>{status}</span>;
+  const cls: Record<string, string> = { draft: 'bg-slate-100 text-slate-500', sent: 'bg-blue-50 text-blue-700', accepted: 'bg-green-50 text-green-700' };
+  return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${cls[status] ?? cls.draft}`}>{status}</span>;
 }

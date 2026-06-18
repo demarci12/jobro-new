@@ -24,41 +24,48 @@ export default function InvoicesClient({ initialInvoices }: { initialInvoices: a
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Invoices</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Invoices</h1>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+      <div className="flex gap-1.5 mb-5">
         {STATUS_FILTERS.map(s => (
-          <button key={s} onClick={() => applyFilter(s)} className="btn ghost small" style={{
-            background: filter === s ? 'var(--blue-light)' : undefined,
-            color: filter === s ? 'var(--blue)' : undefined,
-            borderColor: filter === s ? 'var(--blue)' : undefined,
-            textTransform: 'capitalize',
-          }}>{s}</button>
+          <button
+            key={s}
+            onClick={() => applyFilter(s)}
+            className={`h-8 px-3 rounded-lg border text-xs font-semibold capitalize transition-colors ${
+              filter === s
+                ? 'bg-blue-50 text-blue-700 border-blue-300'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >{s}</button>
         ))}
       </div>
 
       {visible.length === 0 ? (
-        <div className="empty-state">No invoices found.</div>
+        <div className="text-center py-16 text-slate-400 text-sm">No invoices found.</div>
       ) : (
-        <div className="table-wrap" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
-          <table className="table">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+          <table className="w-full text-sm">
             <thead>
-              <tr><th>Client</th><th>Booking date</th><th>Total</th><th>Status</th><th>Created</th></tr>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                {['Client', 'Booking date', 'Total', 'Status', 'Created'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
             </thead>
             <tbody>
               {visible.map((inv: any) => (
-                <tr key={inv.id} className="tr-link" onClick={() => router.push(`/invoices/${inv.id}`)}>
-                  <td style={{ fontWeight: 500 }}>{inv.bookings?.contacts?.name ?? '—'}</td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>
+                <tr key={inv.id} onClick={() => router.push(`/invoices/${inv.id}`)} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <td className="px-4 py-3 font-medium text-slate-800">{inv.bookings?.contacts?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">
                     {inv.bookings?.start_time
                       ? new Date(inv.bookings.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
                       : '—'}
                   </td>
-                  <td style={{ fontWeight: 700 }}>${parseFloat(inv.total ?? 0).toFixed(2)}</td>
-                  <td><InvoiceBadge status={inv.status} /></td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  <td className="px-4 py-3 font-bold text-slate-900">${parseFloat(inv.total ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3"><InvoiceBadge status={inv.status} /></td>
+                  <td className="px-4 py-3 text-slate-400">
                     {new Date(inv.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </td>
                 </tr>
@@ -72,15 +79,14 @@ export default function InvoicesClient({ initialInvoices }: { initialInvoices: a
 }
 
 export function InvoiceBadge({ status }: { status: string }) {
-  const map: Record<string, [string, string]> = {
-    draft: ['#f5f5f5', '#737373'],
-    sent:  ['#eff6ff', '#1d4ed8'],
-    paid:  ['#f0fdf4', '#15803d'],
-    void:  ['#fef2f2', '#dc2626'],
+  const cls: Record<string, string> = {
+    draft: 'bg-slate-100 text-slate-500',
+    sent:  'bg-blue-50 text-blue-700',
+    paid:  'bg-green-50 text-green-700',
+    void:  'bg-red-50 text-red-600',
   };
-  const [bg, color] = map[status] ?? map.draft;
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: bg, color, textTransform: 'capitalize' }}>
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${cls[status] ?? cls.draft}`}>
       {status}
     </span>
   );

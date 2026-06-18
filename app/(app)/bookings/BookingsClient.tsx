@@ -19,50 +19,63 @@ export default function BookingsClient({ initialBookings, workers }: { initialBo
     setLoading(false);
   }
 
+  const STATUS_CLS: Record<string, string> = {
+    SCHEDULED: 'bg-blue-50 text-blue-700',
+    IN_PROGRESS: 'bg-orange-50 text-orange-700',
+    FINISHED: 'bg-green-50 text-green-700',
+    CANCELLED: 'bg-slate-100 text-slate-500',
+    INVOICED: 'bg-purple-50 text-purple-700',
+  };
+
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Bookings</h1>
-        <Link href="/bookings/new" className="btn">+ New booking</Link>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Bookings</h1>
+        <Link href="/bookings/new" className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ New booking</Link>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <select className="input" style={{ width: 'auto' }} value={workerFilter} onChange={e => filter(e.target.value)}>
+      <div className="mb-4">
+        <select
+          className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          value={workerFilter}
+          onChange={e => filter(e.target.value)}
+        >
           <option value="">All workers</option>
           {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
         </select>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="empty-state">No bookings found.</div>
+        <div className="text-center py-16 text-slate-400 text-sm">No bookings found.</div>
       ) : (
-        <div className="table-wrap" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
-          <table className="table">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+          <table className="w-full text-sm">
             <thead>
-              <tr><th>Date & time</th><th>Client</th><th>Worker</th><th>Service</th><th>Price</th><th>Sync</th><th>Status</th></tr>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                {['Date & time', 'Client', 'Worker', 'Service', 'Price', 'Sync', 'Status'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
             </thead>
             <tbody>
               {bookings.map((b: any) => (
-                <tr key={b.id} className="tr-link" onClick={() => router.push(`/bookings/${b.id}`)}>
-                  <td>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{new Date(b.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>{new Date(b.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                <tr key={b.id} onClick={() => router.push(`/bookings/${b.id}`)} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-slate-900">{new Date(b.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div className="text-xs text-slate-400">{new Date(b.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
-                  <td style={{ fontWeight: 500 }}>{b.contacts?.name ?? '—'}</td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>{b.workers?.name ?? '—'}</td>
-                  <td style={{ fontSize: 13, color: 'var(--muted)' }}>{b.service_types?.name ?? '—'}</td>
-                  <td style={{ fontWeight: 600 }}>{b.price != null ? `$${parseFloat(b.price).toFixed(2)}` : '—'}</td>
-                  <td>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
-                      padding: '2px 8px', borderRadius: 999,
-                      background: b.google_sync_status === 'synced' ? '#f0fdf4' : '#fffbeb',
-                      color: b.google_sync_status === 'synced' ? '#15803d' : '#92400e',
-                    }}>
+                  <td className="px-4 py-3 font-medium text-slate-800">{b.contacts?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">{b.workers?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">{b.service_types?.name ?? '—'}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{b.price != null ? `$${parseFloat(b.price).toFixed(2)}` : '—'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${b.google_sync_status === 'synced' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
                       {b.google_sync_status === 'synced' ? '✓' : '○'} {b.google_sync_status}
                     </span>
                   </td>
-                  <td><span className={`badge badge-${b.status.toLowerCase().replace('_','-')}`}>{b.status.replace('_',' ')}</span></td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_CLS[b.status] ?? 'bg-slate-100 text-slate-500'}`}>{b.status.replace('_', ' ')}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

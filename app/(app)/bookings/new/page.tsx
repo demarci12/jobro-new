@@ -87,57 +87,55 @@ function NewBookingForm() {
     if (price) (document.getElementById('price') as HTMLInputElement).value = price;
   }
 
+  const inputCls = 'flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2';
+  const labelCls = 'block text-sm font-medium text-slate-700 mb-1.5';
+
   return (
     <div>
-      <Link href="/bookings" className="back">← Bookings</Link>
-      <h1 className="page-title" style={{ marginBottom: 24 }}>New booking</h1>
-      <div className="card" style={{ maxWidth: 680 }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      <Link href="/bookings" className="text-sm text-slate-500 hover:text-slate-700 no-underline mb-5 inline-block">← Bookings</Link>
+      <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-6">New booking</h1>
+      <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-2xl">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-7">
 
           <Section label="Client">
-            <div style={{ position: 'relative' }}>
-              <svg style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }}
-                width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
               </svg>
-              <input className="input" style={{ paddingLeft: 32 }} placeholder="Search client…"
+              <input className={inputCls + ' pl-9'} placeholder="Search client…"
                 value={contactSearch} onChange={e => handleSearchInput(e.target.value)}
                 onBlur={() => setTimeout(() => setShowResults(false), 150)} />
               {showResults && results.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                  background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 8,
-                  zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.08)', overflow: 'hidden',
-                }}>
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg z-20 shadow-md overflow-hidden">
                   {results.map((c: any) => (
                     <div key={c.id} onMouseDown={() => selectContact(c.id, c.name)}
-                      style={{ padding: '10px 14px', fontSize: 14, cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{c.name}</span>
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{c.email ?? ''}</span>
+                      className="flex justify-between px-3.5 py-2.5 text-sm cursor-pointer hover:bg-slate-50">
+                      <span className="font-medium">{c.name}</span>
+                      <span className="text-slate-400">{c.email ?? ''}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             {contactId && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#f0fdf4', color: '#15803d', borderRadius: 999, fontSize: 13, fontWeight: 600, marginTop: 6 }}>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-semibold mt-1.5">
                 ✓ {contactName}
               </div>
             )}
           </Section>
 
           <Section label="Scheduling">
-            <div className="field-row">
-              <div className="field-group">
-                <label className="field-label">Worker *</label>
-                <select name="worker_id" required className="input">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Worker *</label>
+                <select name="worker_id" required className={inputCls}>
                   <option value="">Select worker…</option>
                   {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </div>
-              <div className="field-group">
-                <label className="field-label">Service type</label>
-                <select name="service_type_id" className="input" onChange={handleServiceChange}>
+              <div>
+                <label className={labelCls}>Service type</label>
+                <select name="service_type_id" className={inputCls} onChange={handleServiceChange}>
                   <option value="">None</option>
                   {serviceTypes.map((s: any) => (
                     <option key={s.id} value={s.id} data-duration={s.duration_min} data-price={s.base_price}>
@@ -147,10 +145,10 @@ function NewBookingForm() {
                 </select>
               </div>
             </div>
-            <div className="field-row">
-              <div className="field-group">
-                <label className="field-label">Start time *</label>
-                <input id="start_time" name="start_time" type="datetime-local" required className="input" defaultValue={prefillStart}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Start time *</label>
+                <input id="start_time" name="start_time" type="datetime-local" required className={inputCls} defaultValue={prefillStart}
                   onChange={e => {
                     const endEl = document.getElementById('end_time') as HTMLInputElement;
                     if (!endEl.value && e.target.value) {
@@ -160,30 +158,32 @@ function NewBookingForm() {
                     }
                   }} />
               </div>
-              <div className="field-group">
-                <label className="field-label">End time *</label>
-                <input id="end_time" name="end_time" type="datetime-local" required className="input" />
+              <div>
+                <label className={labelCls}>End time *</label>
+                <input id="end_time" name="end_time" type="datetime-local" required className={inputCls} />
               </div>
             </div>
           </Section>
 
           <Section label="Job details">
-            <div className="field-row">
-              <div className="field-group" style={{ flex: 2 }}>
-                <label className="field-label">Address</label>
-                <input name="address" className="input" placeholder="Leave blank to use client address" />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <label className={labelCls}>Address</label>
+                <input name="address" className={inputCls} placeholder="Leave blank to use client address" />
               </div>
-              <div className="field-group">
-                <label className="field-label">Price ($)</label>
-                <input id="price" name="price" type="number" min="0" step="0.01" className="input" placeholder="0.00" />
+              <div>
+                <label className={labelCls}>Price ($)</label>
+                <input id="price" name="price" type="number" min="0" step="0.01" className={inputCls} placeholder="0.00" />
               </div>
             </div>
           </Section>
 
-          {error && <div className="form-error">{error}</div>}
-          <div className="form-actions">
-            <Link href="/bookings" className="btn ghost">Cancel</Link>
-            <button type="submit" className="btn" disabled={loading}>{loading ? 'Creating…' : 'Create booking'}</button>
+          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
+          <div className="flex gap-3">
+            <Link href="/bookings" className="h-9 px-4 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors inline-flex items-center">Cancel</Link>
+            <button type="submit" disabled={loading} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              {loading ? 'Creating…' : 'Create booking'}
+            </button>
           </div>
         </form>
       </div>
@@ -193,8 +193,8 @@ function NewBookingForm() {
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', paddingBottom: 4, borderBottom: '1px solid var(--line)' }}>{label}</div>
+    <div className="flex flex-col gap-3.5">
+      <div className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-1 border-b border-slate-100">{label}</div>
       {children}
     </div>
   );
