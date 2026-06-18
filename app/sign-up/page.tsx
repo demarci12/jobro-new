@@ -1,28 +1,31 @@
 import { Suspense } from 'react';
 
-function LoginContent({ searchParams }: { searchParams: Record<string, string> }) {
+function SignUpContent({ searchParams }: { searchParams: Record<string, string> }) {
   const error = searchParams.error;
-  const next = searchParams.next ?? '/calendar';
+  const success = searchParams.success;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-      <div className="bg-white border border-slate-200 rounded-2xl p-10 w-full max-w-sm text-center shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-2xl p-10 w-full max-w-sm shadow-sm">
         <a href="/" className="inline-flex items-center gap-2.5 text-xl font-extrabold no-underline text-slate-900 tracking-tight mb-7">
           <span className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg font-black">J</span>
           Jobro
         </a>
-        <h1 className="text-2xl font-extrabold tracking-tight mb-2">Welcome back</h1>
-        <p className="text-sm text-slate-500 leading-relaxed mb-7">Sign in to manage bookings, clients, and workers.</p>
+        <h1 className="text-2xl font-extrabold tracking-tight mb-1">Create an account</h1>
+        <p className="text-sm text-slate-500 leading-relaxed mb-7">Start managing your field service business.</p>
 
         {error && (
-          <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mb-5 text-left">
+          <div className="px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 mb-5">
             {error}
           </div>
         )}
+        {success && (
+          <div className="px-3.5 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 mb-5">
+            {success}
+          </div>
+        )}
 
-        {/* Email/password form */}
-        <form method="POST" action="/api/auth/signin" className="flex flex-col gap-3 text-left">
-          <input type="hidden" name="provider" value="email" />
-          <input type="hidden" name="next" value={next} />
+        <form method="POST" action="/api/auth/signup" className="flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
             <input
@@ -41,7 +44,8 @@ function LoginContent({ searchParams }: { searchParams: Record<string, string> }
               name="password"
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="At least 8 characters"
+              minLength={8}
               className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             />
           </div>
@@ -49,22 +53,20 @@ function LoginContent({ searchParams }: { searchParams: Record<string, string> }
             type="submit"
             className="h-10 w-full rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors mt-1"
           >
-            Sign in
+            Create account
           </button>
         </form>
 
-        <div className="relative my-5">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
           <div className="relative flex justify-center text-xs text-slate-400 bg-white px-2">or</div>
         </div>
 
-        {/* Google OAuth */}
         <form method="POST" action="/api/auth/signin">
           <input type="hidden" name="provider" value="google" />
-          <input type="hidden" name="next" value={next} />
           <button
             type="submit"
-            className="flex items-center justify-center gap-2.5 w-full h-10 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all"
+            className="flex items-center justify-center gap-2.5 w-full h-10 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all"
           >
             <svg width="16" height="16" viewBox="0 0 18 18">
               <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"/>
@@ -76,24 +78,20 @@ function LoginContent({ searchParams }: { searchParams: Record<string, string> }
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-slate-500">
-          Don&apos;t have an account?{' '}
-          <a href="/sign-up" className="text-blue-600 font-medium hover:underline">Sign up</a>
-        </p>
-
-        <p className="mt-3 text-center text-xs text-slate-400">
-          <a href="/" className="hover:text-slate-600 transition-colors no-underline">← Back to homepage</a>
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Already have an account?{' '}
+          <a href="/login" className="text-blue-600 font-medium hover:underline">Sign in</a>
         </p>
       </div>
     </div>
   );
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+export default async function SignUpPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   return (
     <Suspense>
-      <LoginContent searchParams={sp} />
+      <SignUpContent searchParams={sp} />
     </Suspense>
   );
 }
