@@ -22,6 +22,13 @@ function NewBookingForm() {
   const [recurrence, setRecurrence] = useState('none');
   const [recurrenceCount, setRecurrenceCount] = useState(4);
   const searchTimer = useRef<any>(null);
+  // New client quick-create
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientSaving, setNewClientSaving] = useState(false);
+  const [newClientError, setNewClientError] = useState('');
 
   useEffect(() => {
     Promise.all([fetch('/api/workers').then(r=>r.json()), fetch('/api/contacts?limit=0').then(r=>r.json())])
@@ -47,6 +54,36 @@ function NewBookingForm() {
 
   function selectContact(id: string, name: string) {
     setContactId(id); setContactName(name); setContactSearch(name); setShowResults(false);
+  }
+
+  function openNewClient() {
+    setShowResults(false);
+    setShowNewClient(true);
+    setNewClientName(contactSearch);
+    setNewClientEmail('');
+    setNewClientPhone('');
+    setNewClientError('');
+  }
+
+  async function saveNewClient(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newClientName.trim()) { setNewClientError('Name is required'); return; }
+    setNewClientSaving(true); setNewClientError('');
+    const r = await fetch('/api/contacts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newClientName.trim(), email: newClientEmail || null, phone: newClientPhone || null }),
+    });
+    if (!r.ok) {
+      const d = await r.json();
+      setNewClientError(d.error ?? 'Failed to create client');
+      setNewClientSaving(false);
+      return;
+    }
+    const contact = await r.json();
+    selectContact(contact.id, contact.name);
+    setShowNewClient(false);
+    setNewClientSaving(false);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -102,28 +139,76 @@ function NewBookingForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-7">
 
           <Section label="Client">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
-              </svg>
-              <input className={inputCls + ' pl-9'} placeholder="Search client…"
-                value={contactSearch} onChange={e => handleSearchInput(e.target.value)}
-                onBlur={() => setTimeout(() => setShowResults(false), 150)} />
-              {showResults && results.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg z-20 shadow-md overflow-hidden">
-                  {results.map((c: any) => (
-                    <div key={c.id} onMouseDown={() => selectContact(c.id, c.name)}
-                      className="flex justify-between px-3.5 py-2.5 text-sm cursor-pointer hover:bg-slate-50">
-                      <span className="font-medium">{c.name}</span>
-                      <span className="text-slate-400">{c.email ?? ''}</span>
+            {!showNewClient ? (
+              <>
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="8.5" cy="8.5" r="5.5"/><path d="M15 15l-3-3"/>
+                  </svg>
+                  <input className={inputCls + ' pl-9'} placeholder="Search client…"
+                    value={contactSearch} onChange={e => handleSearchInput(e.target.value)}
+                    onBlur={() => setTimeout(() => setShowResults(false), 150)} />
+                  {showResults && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg z-20 shadow-md overflow-hidden">
+                      {results.map((c: any) => (
+                        <div key={c.id} onMouseDown={() => selectContact(c.id, c.name)}
+                          className="flex justify-between px-3.5 py-2.5 text-sm cursor-pointer hover:bg-slate-50">
+                          <span className="font-medium">{c.name}</span>
+                          <span className="text-slate-400">{c.email ?? ''}</span>
+                        </div>
+                      ))}
+                      {results.length === 0 && contactSearch.length >= 2 && (
+                        <div className="px-3.5 py-2.5 text-sm text-slate-400 italic">No clients found</div>
+                      )}
+                      <div onMouseDown={openNewClient}
+                        className="flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold text-blue-600 cursor-pointer hover:bg-blue-50 border-t border-slate-100">
+                        <span className="text-base leading-none">+</span>
+                        Create {contactSearch.trim() ? `"${contactSearch.trim()}"` : 'new client'} →
+                      </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-            {contactId && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-semibold mt-1.5">
-                ✓ {contactName}
+                {!showResults && !contactId && contactSearch.length >= 2 && (
+                  <button type="button" onClick={openNewClient}
+                    className="text-sm text-blue-600 hover:underline self-start">
+                    + Create &ldquo;{contactSearch}&rdquo; as new client
+                  </button>
+                )}
+                {contactId && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-semibold">
+                      ✓ {contactName}
+                    </div>
+                    <button type="button" onClick={() => { setContactId(''); setContactName(''); setContactSearch(''); }}
+                      className="text-xs text-slate-400 hover:text-slate-600">change</button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-slate-700">New client</span>
+                  <button type="button" onClick={() => setShowNewClient(false)} className="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Name *</label>
+                    <input className={inputCls} value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Full name" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
+                    <input className={inputCls} type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} placeholder="email@example.com" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Phone</label>
+                    <input className={inputCls} type="tel" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} placeholder="+1 555 000 0000" />
+                  </div>
+                  {newClientError && <p className="text-xs text-red-600">{newClientError}</p>}
+                  <button type="button" onClick={saveNewClient} disabled={newClientSaving}
+                    className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors self-start">
+                    {newClientSaving ? 'Creating…' : 'Create & select client'}
+                  </button>
+                </div>
               </div>
             )}
           </Section>
