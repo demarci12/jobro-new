@@ -11,9 +11,9 @@ type Tab = 'details' | 'quote' | 'documentation' | 'invoice';
 // ── Pipeline steps ────────────────────────────────────────────────────────────
 const PIPELINE = [
   { key: 'SCHEDULED',   label: 'Scheduled' },
+  { key: '_QUOTED',     label: 'Quoted' },    // virtual — derived from quote status
   { key: 'IN_PROGRESS', label: 'In Progress' },
   { key: 'FINISHED',    label: 'Finished' },
-  { key: '_QUOTED',     label: 'Quoted' },    // virtual — derived from quote status
   { key: 'INVOICED',    label: 'Invoiced' },
   { key: '_PAID',       label: 'Paid' },      // virtual — derived from invoice status
 ] as const;
@@ -24,9 +24,11 @@ function getPipelineStep(booking: Booking): PipelineKey {
   const inv = booking.invoices?.[0];
   if (inv?.status === 'paid') return '_PAID';
   if (booking.status === 'INVOICED') return 'INVOICED';
+  if (booking.status === 'FINISHED') return 'FINISHED';
+  if (booking.status === 'IN_PROGRESS') return 'IN_PROGRESS';
   const q = booking.quotes?.[0];
-  if (booking.status === 'FINISHED' && q && (q.status === 'accepted' || q.status === 'sent')) return '_QUOTED';
-  return booking.status as PipelineKey;
+  if (q && (q.status === 'sent' || q.status === 'accepted')) return '_QUOTED';
+  return 'SCHEDULED';
 }
 
 function stepIndex(key: PipelineKey) {
@@ -43,8 +45,8 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>(() => {
-    // Default to quote tab when job is finished and has no invoice yet
-    if (initial.status === 'FINISHED' && !initial.invoices?.[0]) return 'quote';
+    // Default to quote tab when booking is scheduled and has no quote yet
+    if (initial.status === 'SCHEDULED' && !initial.quotes?.[0]) return 'quote';
     return 'details';
   });
 
@@ -68,8 +70,8 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
     });
     if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Status update failed'); return; }
     await reload();
-    // Auto-navigate to quote tab when job is finished
-    if (status === 'FINISHED') setTab('quote');
+    // Auto-navigate to invoice tab when job is finished
+    if (status === 'FINISHED') setTab('invoice');
   }
 
   async function createQuote() {
@@ -129,17 +131,9 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
   const nextAction = (() => {
     if (booking.status === 'CANCELLED') return null;
     if (currentStep === '_PAID') return null;
-    if (booking.status === 'SCHEDULED') return {
-      label: 'Start job', desc: 'Mark this booking as in progress', cta: () => patchStatus('IN_PROGRESS'),
-      color: 'bg-orange-500 hover:bg-orange-600',
-    };
-    if (booking.status === 'IN_PROGRESS') return {
-      label: 'Mark finished', desc: 'Job is done — ready to quote and invoice', cta: () => patchStatus('FINISHED'),
-      color: 'bg-green-600 hover:bg-green-700',
-    };
-    if (booking.status === 'FINISHED') {
+    if (booking.status === 'SCHEDULED') {
       if (!quote) return {
-        label: 'Create quote', desc: 'Build a quote with line items for this job', cta: createQuote,
+        label: 'Create quote', desc: 'Build a quote with line items before starting', cta: createQuote,
         color: 'bg-blue-600 hover:bg-blue-700',
       };
       if (quote.status === 'draft') return {
@@ -147,15 +141,25 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
         color: 'bg-blue-600 hover:bg-blue-700',
       };
       if (quote.status === 'sent') return {
-        label: 'Mark quote accepted', desc: 'Client approved — ready to invoice', cta: () => setQuoteStatus('accepted'),
+        label: 'Mark quote accepted', desc: 'Client approved — ready to start the job', cta: () => setQuoteStatus('accepted'),
         color: 'bg-blue-600 hover:bg-blue-700',
       };
-      if (quote.status === 'accepted' && !invoice) return {
-        label: 'Create invoice', desc: 'Generate invoice from accepted quote', cta: createInvoice,
+      if (quote.status === 'accepted') return {
+        label: 'Start job', desc: 'Quote accepted — mark this booking as in progress', cta: () => patchStatus('IN_PROGRESS'),
+        color: 'bg-orange-500 hover:bg-orange-600',
+      };
+    }
+    if (booking.status === 'IN_PROGRESS') return {
+      label: 'Mark finished', desc: 'Job is done — ready to invoice', cta: () => patchStatus('FINISHED'),
+      color: 'bg-green-600 hover:bg-green-700',
+    };
+    if (booking.status === 'FINISHED') {
+      if (!invoice) return {
+        label: 'Create invoice', desc: quote?.status === 'accepted' ? 'Generate invoice from accepted quote' : 'Create an invoice for this job', cta: createInvoice,
         color: 'bg-blue-600 hover:bg-blue-700',
       };
     }
-    if (invoice && (invoice.status === 'draft')) return {
+    if (invoice && invoice.status === 'draft') return {
       label: 'Send invoice', desc: 'Mark invoice as sent to client',
       cta: () => router.push(`/invoices/${invoice.id}`),
       color: 'bg-blue-600 hover:bg-blue-700',

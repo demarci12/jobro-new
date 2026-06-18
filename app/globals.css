@@ -8,6 +8,15 @@
   --sidebar-w: 220px;
   --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --radius: 0.5rem;
+
+  /* Design tokens used by JobDocumentation and other inline-styled components */
+  --ink:        #0f172a;
+  --muted:      #94a3b8;
+  --paper:      #ffffff;
+  --canvas:     #f8fafc;
+  --line:       #e2e8f0;
+  --blue:       #2563eb;
+  --blue-light: #eff6ff;
 }
 
 @layer base {
@@ -19,6 +28,25 @@
     -moz-osx-font-smoothing: grayscale;
   }
   a { color: inherit; }
+}
+
+/* Shared component classes */
+@layer components {
+  .card {
+    @apply bg-white border border-slate-200 rounded-xl p-5;
+  }
+  .input {
+    @apply flex w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center font-semibold transition-colors rounded-lg;
+  }
+  .btn.ghost {
+    @apply border border-slate-200 text-slate-600 bg-white hover:bg-slate-50;
+  }
+  .btn.small {
+    @apply h-8 px-3 text-xs;
+  }
 }
 
 /* FullCalendar overrides */
