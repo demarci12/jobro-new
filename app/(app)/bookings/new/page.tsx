@@ -19,6 +19,8 @@ function NewBookingForm() {
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recurrence, setRecurrence] = useState('none');
+  const [recurrenceCount, setRecurrenceCount] = useState(4);
   const searchTimer = useRef<any>(null);
 
   useEffect(() => {
@@ -68,10 +70,12 @@ function NewBookingForm() {
     if (fd.get('service_type_id')) body.service_type_id = fd.get('service_type_id');
     if (fd.get('address')) body.address = fd.get('address');
     if (fd.get('price')) body.price = parseFloat(fd.get('price') as string);
+    if (recurrence !== 'none') { body.recurrence = recurrence; body.recurrence_count = recurrenceCount; }
     const r = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await r.json();
     if (!r.ok) { setError(data.error ?? 'Failed to create booking.'); setLoading(false); return; }
-    router.push(`/bookings/${data.id}`);
+    // Recurring returns { bookings, created }; single returns { id }
+    router.push(data.id ? `/bookings/${data.id}` : '/bookings');
   }
 
   function handleServiceChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -178,11 +182,32 @@ function NewBookingForm() {
             </div>
           </Section>
 
+          <Section label="Recurring">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Repeat</label>
+                <select className={inputCls} value={recurrence} onChange={e => setRecurrence(e.target.value)}>
+                  <option value="none">Does not repeat</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="fortnightly">Every 2 weeks</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              {recurrence !== 'none' && (
+                <div>
+                  <label className={labelCls}>Occurrences</label>
+                  <input type="number" min={2} max={52} className={inputCls} value={recurrenceCount} onChange={e => setRecurrenceCount(parseInt(e.target.value) || 2)} />
+                  <p className="text-xs text-slate-400 mt-1">Creates {recurrenceCount} bookings · ends {(() => { const d = new Date(); if (recurrence === 'weekly') d.setDate(d.getDate() + 7 * (recurrenceCount - 1)); else if (recurrence === 'fortnightly') d.setDate(d.getDate() + 14 * (recurrenceCount - 1)); else d.setMonth(d.getMonth() + recurrenceCount - 1); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); })()}</p>
+                </div>
+              )}
+            </div>
+          </Section>
+
           {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
           <div className="flex gap-3">
             <Link href="/bookings" className="h-9 px-4 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors inline-flex items-center">Cancel</Link>
             <button type="submit" disabled={loading} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
-              {loading ? 'Creating…' : 'Create booking'}
+              {loading ? 'Creating…' : recurrence !== 'none' ? `Create ${recurrenceCount} bookings` : 'Create booking'}
             </button>
           </div>
         </form>

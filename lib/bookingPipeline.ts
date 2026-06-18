@@ -13,6 +13,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createCalendarEvent } from '@/lib/googleCalendar';
 import { hasConflict, type TimeRange } from '@/lib/availability';
+import { sendBookingConfirmation } from '@/lib/email';
 
 export interface BookingInput {
   contact_id: string;
@@ -102,7 +103,24 @@ export async function runBookingPipeline(input: BookingInput): Promise<BookingPi
     return { ok: false, status: 500, error: insertError?.message ?? 'Insert failed' };
   }
 
-  // ── Step 6: Fan-out (GCal) — soft-fail ────────────────────────────────────
+  // ── Step 6: Confirmation email — soft-fail ────────────────────────────────
+  if (contact.email) {
+    const { data: serviceType } = input.service_type_id
+      ? await db.from('service_types').select('name').eq('id', input.service_type_id).single()
+      : { data: null };
+    sendBookingConfirmation({
+      clientName: contact.name,
+      clientEmail: contact.email,
+      workerName: worker.name,
+      serviceName: serviceType?.name,
+      startTime: input.start_time,
+      endTime: input.end_time,
+      address: input.address,
+      bookingId: booking.id,
+    }).catch(() => {}); // fire-and-forget, never block booking creation
+  }
+
+  // ── Step 7: Fan-out (GCal) — soft-fail ────────────────────────────────────
   try {
     const attendees = [worker.email].filter(Boolean) as string[];
     if (contact.email) attendees.push(contact.email);
