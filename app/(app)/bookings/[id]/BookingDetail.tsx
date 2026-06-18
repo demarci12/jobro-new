@@ -118,8 +118,8 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
       body: JSON.stringify({ booking_id: booking.id }),
     });
     if (!r.ok) { const d = await r.json(); setError(d.error ?? 'Failed to create invoice'); return; }
-    const inv = await r.json();
-    router.push(`/invoices/${inv.id}`);
+    await reload();
+    setTab('invoice');
   }
 
   const quote = booking.quotes?.[0];
