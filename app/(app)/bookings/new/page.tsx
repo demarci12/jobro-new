@@ -125,7 +125,7 @@ function NewBookingForm() {
           </Section>
 
           <Section label="Scheduling">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Worker *</label>
                 <select name="worker_id" required className={inputCls}>
@@ -145,7 +145,7 @@ function NewBookingForm() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Start time *</label>
                 <input id="start_time" name="start_time" type="datetime-local" required className={inputCls} defaultValue={prefillStart}
@@ -166,8 +166,8 @@ function NewBookingForm() {
           </Section>
 
           <Section label="Job details">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
                 <label className={labelCls}>Address</label>
                 <input name="address" className={inputCls} placeholder="Leave blank to use client address" />
               </div>

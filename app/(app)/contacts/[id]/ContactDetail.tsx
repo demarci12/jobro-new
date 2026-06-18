@@ -26,7 +26,7 @@ export default function ContactDetail({ contact, bookings, total }: { contact: a
         <Link href={`/bookings/new?contact_id=${contact.id}`} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ New booking</Link>
       </div>
 
-      <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: '1fr 160px' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4 mb-8">
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Contact details</h2>
           <div className="flex flex-col gap-2.5">

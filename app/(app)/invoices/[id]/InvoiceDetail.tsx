@@ -97,7 +97,7 @@ export default function InvoiceDetail({ invoice: initial }: { invoice: any }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Bill to</div>
           <div className="flex flex-col gap-1 text-sm">

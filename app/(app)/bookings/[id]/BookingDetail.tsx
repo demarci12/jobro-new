@@ -293,7 +293,7 @@ export default function BookingDetail({ booking: initial }: { booking: Booking }
       {/* ── Tab: Job details ─────────────────────────────────────────────────── */}
       {tab === 'details' && (
         <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
             <DetailRow label="Client">
               <Link href={`/contacts/${booking.contact_id}`} className="text-blue-600 no-underline hover:underline font-medium">
                 {booking.contacts?.name ?? '—'}

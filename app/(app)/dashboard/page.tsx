@@ -47,20 +47,20 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/bookings/new" className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ New booking</Link>
-          <Link href="/contacts/new" className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors inline-flex items-center">+ New client</Link>
+          <Link href="/bookings/new" className="h-9 px-3 sm:px-4 rounded-lg bg-blue-600 text-white text-xs sm:text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">+ New booking</Link>
+          <Link href="/contacts/new" className="hidden sm:inline-flex h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors items-center">+ New client</Link>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-7">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
         <StatCard label="Today's bookings" value={String(todayBookings?.length ?? 0)} href="/bookings" />
         <StatCard label="In progress" value={String(inProgress?.length ?? 0)} href="/bookings" accent={inProgress?.length ? 'text-orange-500' : undefined} />
         <StatCard label="Unpaid invoices" value={String(pendingInvoices?.length ?? 0)} href="/invoices" accent={pendingInvoices?.length ? 'text-red-600' : undefined} />
         <StatCard label="Revenue outstanding" value={`$${pendingTotal.toFixed(2)}`} href="/invoices" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Today's schedule */}
         <div className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="flex justify-between items-center mb-4">
